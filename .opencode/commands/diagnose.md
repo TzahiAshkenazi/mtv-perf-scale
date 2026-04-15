@@ -1,0 +1,44 @@
+---
+description: Classify a problem using the Cynefin framework
+---
+# Diagnose Agent
+
+Classify a problem or situation using the Cynefin framework.
+
+## Context Files
+
+@.agents/PERSONALITY.md
+@AGENTS.md
+@.agents/CYNEFIN.md
+
+## Task
+
+$ARGUMENTS
+
+## Instructions
+
+Start from a state of Disorder and classify the problem:
+
+### If Chaotic (Crisis)
+- ACT FIRST with stabilizing actions
+- Ask: "What metric will confirm stability?"
+- Once stable, transition to Complicated for root cause analysis
+
+### If Complex (Unknown unknowns)
+- Do NOT provide a complete solution
+- Propose a small "safe-to-fail" probe/experiment
+- Ask: "How will we sense the outcome?"
+- Solution emerges from probe-sense-respond loop
+
+### If Complicated (Known unknowns)
+- Present 2-3 "Good Practice" options
+- Explain trade-offs for each
+- Await user decision before planning
+
+### If Clear (Known knowns)
+- Provide the single best practice solution directly
+- No planning overhead needed
+
+## Output
+
+State the domain classification and follow the appropriate mandate.

@@ -1,0 +1,13 @@
+.tox
+.venv
+.coverage
+.mypy_cache
+.ruff_cache
+dist
+__pycache__
+.tests_coverage
+.pytest_cache
+vendor/*
+.claude/settings.local.json
+.claude/plans/*
+.local/*

@@ -1,0 +1,122 @@
+description = "Orchestrate the full Software Development Lifecycle using specialized agents"
+
+prompt = """
+# SDLC Orchestrator
+
+You are the SDLC Orchestrator for this OpenShift deployment automation project.
+
+## Context Files to Read First
+
+Before proceeding, read these project context files:
+- .agents/PERSONALITY.md
+- AGENTS.md
+- .agents/CYNEFIN.md
+
+## Request
+
+{{args}}
+
+## Orchestration Instructions
+
+Your role is to coordinate work across specialized agents defined in `.agents/` and `.gemini/commands/`.
+
+### Phase 0: Triage (Cynefin Classification)
+
+Before any work, classify the request using the Cynefin framework:
+
+- **Chaotic**: STOP. Act immediately to stabilize. No SDLC process until stable.
+- **Complex**: Requires probe-sense-respond. Design small experiments first.
+- **Complicated**: Full SDLC applies. Multiple valid approaches exist.
+- **Clear**: Skip to implementation. Use best practice directly.
+
+Create a task list to track all phases.
+
+### Phase 1: Architecture (Complicated/Complex only)
+
+Read context files: .agents/ARCHITECT.md, .agents/KISS.md
+
+Create a technical design with:
+1. System context diagram (UTF-8 art/box)
+2. Data flow visualization
+3. Affected files and dependencies
+4. Unknowns to resolve
+5. Atomic implementation steps
+6. Test scenarios
+
+Save output to `docs/{feature}-architecture.md` (draft)
+
+### Phase 1b: Security Architecture Review
+
+Read context file: .agents/SECURITY.md
+
+Review the DESIGN (not code) for:
+- Attack surface introduced by proposed components
+- Data flow security (sensitive data handling, encryption needs)
+- Authentication/authorization gaps in the design
+- Trust boundary violations
+- Potential injection points in planned interfaces
+- Secure defaults and fail-safe considerations
+
+**Gate**: If Critical/High security concerns found, revise architecture before proceeding.
+
+### Phase 2: Pre-Flight Review
+
+Read context file: .agents/LEAD.md
+
+Generate a Pre-Flight Dashboard with:
+- Confidence score per task
+- Cynefin domain per task
+- Missing context identification
+- Blockers and remediation steps
+
+**Gate**: If confidence < 80% or status is "Stop", pause and request user input.
+
+### Phase 3: Implementation
+
+Read context files: .agents/ENGINEER.md, .agents/KISS.md, .agents/PROMPTS.md
+
+For each atomic step:
+- Follow all mandatory rules from AGENTS.md
+- Use `uv run` for Python
+- No inline SSH scripts
+- Document any refactoring before changing
+- Run tests after implementation: `uv run pytest`
+
+### Phase 4: Code Review
+
+Read context file: .agents/QUALITY.md
+
+Analyze:
+- Dependency mapping
+- Contract verification
+- Logic and integrity
+- Domain boundary violations
+
+Output: docs/{feature}-review.md
+
+### Phase 5: Security Audit
+
+Read context file: .agents/SECURITY.md
+
+Check for:
+- OWASP Top 10 vulnerabilities
+- Sensitive data exposure
+- Command injection in shell operations
+- SSH/SCP security
+
+Output: docs/{feature}-security.md
+
+### Phase 6: Completion
+
+Summarize the SDLC run:
+- List all artifacts created
+- Note any unresolved issues from Review/Security
+- Propose commit message for the changes
+- Ask user if ready to commit
+
+## Workflow Control
+
+- **Pause points**: After Phase 1b, Phase 2, and Phase 4 if issues found
+- **User decisions**: Required for Complicated domain trade-off selections
+- **Probes**: For Complex domain, propose experiments before full implementation
+"""
