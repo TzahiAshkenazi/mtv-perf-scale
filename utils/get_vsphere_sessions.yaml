@@ -1,0 +1,90 @@
+---
+- name: Monitor vSphere Sessions using govc
+  hosts: localhost
+  gather_facts: false
+  vars:
+    IDLE_THRESHOLD: 7200
+    EXPIRE_THRESHOLD: 1800
+    GOVC_URL: "{{ vSphere_url }}"
+    GOVC_PASSWORD: "{{ lookup('env', 'vsphere_pw') }}"
+    vcenter_username: "{{ lookup('env', 'vsphere_user') | default('administrator@vsphere.local', true) }}"
+    vm_name: "rhel79-50gb-20usage-enbd-2disks-vm-150"
+    guest_user: "{{ lookup('env', 'vsphere_os_user') | default('root', true) }}"
+    guest_pw: "{{ lookup('env', 'scale_lab_pw') }}"
+    result_directory: '/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651'
+    summarized_session_info: {}
+    agents_list:
+      - govmomi
+      - govc
+      - Go-http-client
+      - telegraf
+      - VMware
+
+  tasks:
+
+    - name: 
+      file:
+        path: "{{ result_directory }}/.report-artifacts"
+        state: directory
+
+    - name: Pull the govc container image
+      shell: podman pull docker.io/vmware/govc:latest
+
+    - name: Get all sessions info as json
+      shell: |
+        podman run -e GOVC_URL={{ GOVC_URL }} \
+        -e GOVC_USERNAME={{ vcenter_username }} \
+        -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+        -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+        /govc session.ls -json
+      register: govc_output_raw_json
+      changed_when: false
+
+    - name: Write all sessions to log folder
+      copy:
+        content: |
+          {{govc_output_raw_json.stdout   }}
+        dest: "{{ result_directory }}/sessions_list.json"
+
+
+    - name: Calculate break down by agents using govc output
+      shell: |
+        podman run -e GOVC_URL={{ GOVC_URL }} \
+        -e GOVC_USERNAME={{ vcenter_username }} \
+        -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+        -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+        /govc session.ls || true
+      register: govc_output
+
+    - name: Build summarized session info dictionary for each agent
+      set_fact:
+        summarized_session_info: "{{ summarized_session_info | default({}) | combine({
+            item: {
+              'total_sessions': (govc_output.stdout_lines | select('search', item) | list | length),
+              'idle_sessions': (govc_output.stdout_lines | select('search', item) | select('search', 'old') | list | length),
+              'active_sessions': (govc_output.stdout_lines | select('search', item) | list | length)
+                                  - (govc_output.stdout_lines | select('search', item) | select('search', 'old') | list | length)
+            }
+          }) }}"
+      loop: "{{ agents_list }}"
+      loop_control:
+        loop_var: item
+
+    - name: Write VM info to dict
+      set_fact:
+        all_session_info:
+          sessions:
+            total: "{{ govc_output.stdout_lines | length | int }}"
+            idle: "{{ govc_output.stdout_lines | select('search', 'old') | list | length }}"
+            active: "{{ (govc_output.stdout_lines | length | int) - (govc_output.stdout_lines | select('search', 'old') | list | length) }}"
+            breakdown: "{{ summarized_session_info }}"
+
+    - name: Display summarized session info
+      debug:
+        var: all_session_info
+
+    - name: Create JSON with collected information
+      copy:
+        content: |
+          {{all_session_info | to_json(indent=4, sort_keys=False) }}
+        dest: "{{ result_directory }}/.report-artifacts/vsphere_sessions_info.json"

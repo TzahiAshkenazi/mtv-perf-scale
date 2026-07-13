@@ -1,0 +1,31 @@
+Testcase,Name,Case,Description,Type,Storage,Protocol,VMsPrefix
+2.0,1vm-1disk-50gb-35usage-cold-tc2-0,NET-FC-C-01V-STD-01,1VM 1disk 50GB cold (Netapp FC),cold,NetApp,FC,rhel79-50gb-70usage-vm
+2.1,1vm-1disk-50gb-35usage-warm-tc2-1,NET-ISC-W-01V-STD-01,1VM 1disk 50GB warm (Netapp ISCSI),warm,NetApp,ISCSI,rhel79-50gb-70usage-vm
+2.4,1vm-1disk-1tb-820usage-cold-tc2-4,NET-ISC-C-01V-LRG-01,1VM 1TB 820GB usage cold (Netapp ISCSI),cold,NetApp,ISCSI,1tb-75-usage
+2.5,1vm-1tb-366gb-usage-dynamic-fio-warm-tc2-5,NET-ISC-W-01V-LRG-01,1VM 1TB 820GB usage warm (Netapp ISCSI),warm,NetApp,ISCSI,fio-1tb-warm
+2.6,10vm-mixed-1disk-50gb-35usage-cold-tc2-6,NET-FC-C-10V-MOS-01,10VMs mixed (5 RHEL + 5 Win) cold FC,cold,NetApp,FC,rhel79-50gb-70usage-vm|win2019-vm
+2.8,80vm-1disk-50gb-35usage-cold-tc2-8,NET-MIX-C-80V-STD-01,80VMs 8ESXI mixed protocols,cold,NetApp,Mixed,rhel79-50gb-70usage-vm
+3.3,10vm-1disk-50gb-35usage-warm-tc3-3,NET-FC-W-10V-STD-01,10VMs warm FC (Netapp),warm,NetApp,FC,rhel79-50gb-70usage-vm
+3.4,136vm-2disk-50gb-35usage-warm-tc3-4,NET-ISC-W-136V-MDK-01,136VMs 2disks warm,warm,NetApp,ISCSI,rhel79-50gb-20usage-2disks-warm-vm
+4.0,1vm-1tb-offload-cold-tc4-0,NET-ISC-C-01V-OFL-01,1VM 1TB Storage-offload cold (Netapp ISCSI),cold,NetApp,ISCSI,1tb-75-usage
+5.0,10vms-50gb-35usage-warm-multiplans-tc5-0,ANY-ANY-W-10V-MPL-01,10vms multi-plan,warm,Any,Any,rhel79-50gb-70usage-vm
+6.0,1vm-ibm-1disk-50gb-35usage-cold-iscsi-tc6-0,IBM-ISC-C-01V-STD-01,IBM 1VM cold ISCSI,cold,IBM,ISCSI,ibm-rhel79-50gb-70usage-iscsi-vm
+6.1,1vm-ibm-rhel79-50gb-70usage-cold-fc-tc6-1,IBM-FC-C-01V-STD-01,IBM 1VM cold FC,cold,IBM,FC,ibm-rhel79-50gb-70usage-fc-vm
+6.2,1vm-ibm-rhel79-50gb-70usage-warm-iscsi-tc6-2,IBM-ISC-W-01V-STD-01,IBM 1VM warm ISCSI,warm,IBM,ISCSI,ibm-rhel79-50gb-70usage-iscsi-vm
+6.3,1vm-ibm-rhel79-50gb-70usage-warm-fc-tc6-3,IBM-FC-W-01V-STD-01,IBM 1VM warm FC,warm,IBM,FC,ibm-rhel79-50gb-70usage-fc-vm
+6.4,1vm-ibm-1tb-cold-iscsi-tc6-4,IBM-ISC-C-01V-LRG-01,IBM 1VM 1TB cold ISCSI,cold,IBM,ISCSI,ibm-1tb-75-usage-iscsi
+6.5,1vm-ibm-1tb-cold-fc-tc6-5,IBM-FC-C-01V-LRG-01,IBM 1VM 1TB cold FC,cold,IBM,FC,ibm-1tb-75-usage-fc
+6.6,1vm-ibm-1tb-366gb-usage-dynamic-fio-warm-iscsi-tc6-6,IBM-ISC-W-01V-LRG-02,IBM 1VM 1TB FIO warm ISCSI,warm,IBM,ISCSI,ibm-fio-1tb-warm-iscsi
+6.7,1vm-ibm-2disk-50gb-35usage-warm-iscsi-tc6-7,IBM-ISC-W-01V-MDK-01,IBM 1VM 2disk warm ISCSI,warm,IBM,ISCSI,ibm-rhel79-50gb-20usage-2disks-iscsi-vm
+7.0,10vm-ibm-mixed-1disk-50gb-35usage-cold-fc-tc7-0,IBM-FC-C-10V-MOS-01,IBM 10VMs mixed (5 RHEL + 5 Win) cold FC,cold,IBM,FC,ibm-rhel79-50gb-70usage-fc-vm|ibm-win2019-fc-vm
+7.1,10vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-1,IBM-ISC-C-10V-STD-01,IBM 10VMs cold ISCSI,cold,IBM,ISCSI,ibm-rhel79-50gb-70usage-iscsi-vm
+7.2,10vm-ibm-1disk-50gb-35usage-cold-fc-tc7-2,IBM-FC-C-10V-STD-01,IBM 10VMs cold FC,cold,IBM,FC,ibm-rhel79-50gb-70usage-fc-vm
+7.3,10vm-ibm-1disk-50gb-35usage-warm-fc-tc7-3,IBM-FC-W-10V-STD-01,IBM 10VMs warm FC,warm,IBM,FC,ibm-rhel79-50gb-70usage-fc-vm
+7.4,50vm-ibm-1disk-50gb-35usage-cold-fc-tc7-4,IBM-FC-C-50V-STD-01,IBM 50VMs cold FC,cold,IBM,FC,ibm-rhel79-50gb-70usage-fc-vm
+7.5,50vm-soak-ibm-1disk-50gb-35usage-cold-fc-tc7-5,IBM-FC-C-50V-SOK-01,IBM 50VMs soak cold FC (50 loops),cold,IBM,FC,ibm-rhel79-50gb-70usage-fc-vm
+7.6,80vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-6,IBM-ISC-C-80V-STD-01,IBM 80VMs cold ISCSI,cold,IBM,ISCSI,ibm-rhel79-50gb-70usage-iscsi-vm
+8.0,10vm-ibm-aio-buffer-1disk-50gb-35usage-cold-iscsi-tc8-0,IBM-ISC-C-10V-AIO-01,IBM 10VMs AIO buffer cold ISCSI,cold,IBM,ISCSI,ibm-rhel79-50gb-70usage-iscsi-vm
+9.0,1vm-ibm-1tb-offload-cold-iscsi-tc9-0,IBM-ISC-C-01V-OFL-01,IBM 1VM 1TB offload cold ISCSI,cold,IBM,ISCSI,ibm-1tb-75-usage-iscsi
+9.1,1vm-ibm-1tb-offload-warm-iscsi-tc9-1,IBM-ISC-W-01V-OFL-01,IBM 1VM 1TB offload warm ISCSI,warm,IBM,ISCSI,ibm-1tb-75-usage-iscsi
+9.2,5vm-ibm-10disks-50gbusage-offload-cold-iscsi-tc9-2,IBM-ISC-C-05V-OFL-MDK-01,IBM 5VMs 10disks offload cold ISCSI,cold,IBM,ISCSI,ibm-rhel79-50gb-20usage-10disks-offload-iscsi-vm
+9.3,50vm-ibm-2disk-50gbusage-offload-cold-iscsi-tc9-3,IBM-ISC-C-50V-OFL-MDK-01,IBM 50VMs 2disk offload cold ISCSI,cold,IBM,ISCSI,ibm-rhel79-50gb-20usage-2disks-offload-iscsi-vm

@@ -1,0 +1,31 @@
+---
+- name: Collect ESX metrics using govc
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    ESX_NAME: "{{ esx_name }}"
+    ReportPath: "{{ LogsPath }}"
+
+  tasks:
+    - name: Set Host ESX name
+      set_fact:
+        esx_short_name: "{{ ESX_NAME.split('.') | first }}"
+
+    - name: Create output files
+      shell: |
+        echo "{{ esx_short_name }}_NetworkTransmittedAverage(KBps)" > "{{ ReportPath }}/{{ esx_short_name }}"-NetworkTransmitRate.csv ;
+        echo "{{ esx_short_name }}_DiskReadAverage(KBps)"> "{{ ReportPath }}/{{ esx_short_name }}"-DiskReadRate.csv
+
+    - name: Get network and disk metrics for ESX host {{ ESX_NAME }}
+      shell: |
+        for i in $(seq 1 3300); do
+          podman exec govc_metrics govc metric.sample -n 1 -t=true -i=real -instance=- '{{ ESX_NAME }}' net.transmitted.average | awk '{print $4 " " $5}' >> "{{ ReportPath }}/{{ esx_short_name }}"-NetworkTransmitRate.csv
+          podman exec govc_metrics govc metric.sample -n 1 -t=true -i=real -instance=- '{{ ESX_NAME }}' disk.read.average | awk '{print $4 " " $5}' >> "{{ ReportPath }}/{{ esx_short_name }}"-DiskReadRate.csv
+          sleep 13
+        done
+      register: esx_metric
+      ignore_errors: true
+
+
+

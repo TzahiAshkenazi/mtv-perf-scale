@@ -1,0 +1,33 @@
+---
+- name: Create image and container for collect metrics using GOVC
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - containers.podman
+
+  vars:
+    GOVC_URL: "{{ vSphere_url }}"
+    GOVC_USERNAME: "{{ lookup('env', 'vsphere_user') | default('administrator@vsphere.local', true) }}"
+    GOVC_PASSWORD: "{{ lookup('env', 'vsphere_pw') }}"
+    GOVC_INSECURE: "true"
+
+  tasks:
+    - name: Build the mygovc_metrics image from Dockerfile
+      ansible.builtin.shell: podman build -t localhost/mygovc_metrics:latest -f Dockerfile_metrics.govc .
+
+    - name: Pause for 3 seconds
+      ansible.builtin.pause:
+        seconds: 3
+
+    - name: Start govc container for efficient execution
+      podman_container:
+        name: govc_metrics
+        image: localhost/mygovc_metrics:latest
+        state: started
+        pull: never
+        env:
+          GOVC_URL: "{{ GOVC_URL }}"
+          GOVC_USERNAME: "{{ GOVC_USERNAME }}"
+          GOVC_PASSWORD: "{{ GOVC_PASSWORD }}"
+          GOVC_INSECURE: "{{ GOVC_INSECURE }}"
+

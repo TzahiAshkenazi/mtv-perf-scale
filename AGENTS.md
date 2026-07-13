@@ -1,62 +1,69 @@
-# AGENTS.md
+# Project Instructions
 
-## Commands
+This file provides project-specific instructions for AI/LLM agents working in this repository.
 
-```bash
-# Run deployer
-uv run python -m {MODULE} --config config.yml
-uv run python -m {MODULE} --config config.yml --phase deploy
+## Project Overview
 
-# Tests
-uv run pytest
-uv run pytest tests/path.py::TestClass::test_method -v
+**MTV** (Migration Toolkit for Virtualization) scale testing scripts for Red Hat virtualization migrations:
 
-# Lint
-pre-commit run --all-files
+- VM migration testing (warm and cold migrations)
+- Provider setup and configuration
+- Migration health validation
+- Scale and performance testing
+
+## Tech Stack
+
+| Stack | Usage | Tooling |
+|-------|-------|---------|
+| **Bash/Shell** | Primary scripting language | shellcheck |
+| **Python** | Utilities and report parsing | ruff, pip |
+| **YAML** | Test configuration and manifests | — |
+
+## Development Conventions
+
+### Shell Scripts
+
+- Use `set -euo pipefail` at the start of scripts
+- Quote all variable expansions
+- Run `shellcheck` before committing
+- Common functions are in `lib/common.sh`
+
+### Python
+
+- Use `ruff` for linting and formatting
+- Pin dependencies in `requirements.txt`
+- Use type hints for function signatures
+
+### Testing
+
+- Use `.test` TLD for all domain names in test fixtures (per RFC 2606)
+- Test configurations should not contain real credentials or endpoints
+
+### File Organization
+
+```
+MTV/
+├── lib/                # Shared shell functions (common.sh)
+├── config/             # Test configuration (tests.yaml)
+├── utils/              # Utility scripts
+├── MainMTV.sh          # Main entry point
+└── SetupProvider.sh    # Provider setup
 ```
 
-## Architecture
+## Agent Configuration
 
-**Key modules:**
+Shared agent configuration is located in `.agents/`:
 
-**Key abstractions:**
+- `.agents/CYNEFIN.md` — Problem classification framework
+- `.agents/PERSONALITY.md` — Shared agent values and behavioral commitments
+- `.agents/LESSONS.md` — Lessons learned from past sessions (index)
+- `.agents/lessons/` — Themed lesson files (architecture, code-quality, communication, implementation, process, security)
+- `.agents/REQUIREMENTS.md` — Non-negotiable project requirements (index)
+- `.agents/SECURITY_REVIEW_CHECKLIST.md` — Security review process for external context files
+- `.agents/pipelines/` — Pipeline process definitions (SDLC, Jira, Skill Generation)
+- `.agents/requirements/` — Individual requirement definitions (REQ-001 through REQ-011)
+- `.agents/roles/` — Role-specific instructions for each SDLC gate
 
-**Environment variables:**
+Platform-specific configuration:
 
-## Mandatory Rules
-
-1. **Use `uv run` for all Python** - Never bare `python` or `pytest`
-2. **Variable names ≥3 chars** - Except `i`, `j`, `x` in comprehensions/lambdas
-3. **No import aliases without user confirmation**
-4. **Shared code → `utilities/`** - Extract when logic appears in 2+ modules
-5. **Max 500 lines per module**
-6. **No inline scripts via SSH** - Never embed Python/Bash scripts in SSH commands. Instead:
-   - Create a separate script file in `scripts/`
-   - SCP the script to the remote host
-   - Execute via SSH, then clean up
-7. **No heredocs for remote file writes** - Use `tempfile.NamedTemporaryFile` + `scp_put()`
-8. **Tempfile with context management** - Always use `with tempfile.NamedTemporaryFile(...) as f:` pattern. Never use `tempfile.mkstemp()` with manual `os.unlink()`
-9. **Build paths with `os.path.join()`** - When constructing paths involving variables or function calls, use `os.path.join()`. Hardcoded absolute paths like `Path("/var/run/ocp-deployer")` are acceptable. For parent directory navigation, use `Path(__file__).parent` (not `os.pardir`). Example: `Path(os.path.join(Path(__file__).parent.parent, "scripts", "file.py"))`
-10. **Use `.test` TLD in tests (RFC 2606)** - Use `example.test` in test files, not `example.com`. The `.test` TLD is reserved for testing and will never resolve. Use `example.com` only in documentation and user-facing examples.
-11. **Imports at top of file** - All imports must be at the top of the file unless absolutely necessary (e.g., circular import prevention). Do not create unnecessary intermediate variables for imported modules - use `module.function()` directly. Do not rename imports (e.g., `import foo as f`) unless necessary - use the full import path when needed.
-
-## Code Style
-
-- Line length: 120 chars
-- Max file length: 500 lines
-- Python 3.14+, type hints enforced (mypy)
-- 90% test coverage required
-- Use `from __future__ import annotations`
-- Keep `__init__.py` files empty
-
-## Sensitive Information
-
-- Use sensitive=True to suppress logging
-- Sanitize data before exposing in errors
-
-Never log passwords, tokens, API keys, or commands containing them.
-
-## References
-
-Directories:
-[.agents/](.agents/) Directory contains all persona information
+- `.claude/` — Claude Code skills and settings

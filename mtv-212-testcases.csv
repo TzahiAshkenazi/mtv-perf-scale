@@ -1,0 +1,31 @@
+Test ID,TC,Date,Test Case Description,MTV,VDDK,max_vm inflight,Migration Type,Total Migration Duration,Aggregated DS Read Rate in MB,Utilized Transfer Rate (MB/s),Full Disk Transfer Rate (MB/s),Total DiskTransfer Duration,MTV env,Source,Source EndPointType,Target,Source Storage,Target Storage,Source: # Hosts,# workers,# Vms,# Disks,Disk Size (GB),Disk Utilization,Disk Util value,Comment,Total Data
+1,2.0,,1VM 1disk 50GB 35usage,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,1,1,50,35 (70%),35,,50
+2,2.1,,1VM 1disk 50GB 35usage,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,1,1,50,35 (70%),35,,50
+3,2.4,,1VM 1TB 820GB usage,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,1,1000,820 (82%),820,,1000
+4,2.5,,1VM 1TB 820GB usage - FIO - NetApp,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,1,1000,820 (82%),820,,1000
+5,2.6,,10VMs Mixed 50GB 35usage 1ESXI 1disk,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,10,1,50,35 (70%),35,,500
+6,2.8,,80VMs 50GB 35usage 8ESXI 1disk,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,fc + iscsi,ceph-rbd,8,12,80,1,50,35 (70%),35,,4000
+7,3.3,,10VMs 50GB 35usage 1ESXI 1disk,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,10,1,50,35 (70%),35,,500
+8,3.4,,136VMs 50GB 20usage 8ESXI 2disk,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,136,2,50,20 (40%),20,,13600
+9,4.0,,1VM 1disk 1TB 820usage - Storage-offload,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,1,1000,820 (82%),820,,1000
+10,5.0,,10 Plans total 10VMs 50GB 35usage 1ESXI 1disk,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,10,1,50,35 (70%),35,,500
+11,6.0,,1VM 1disk 50GB 35usage - IBM ISCSI,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,1,50,35 (70%),35,,50
+12,6.1,,1VM 1disk 50GB 35usage - IBM FC,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,1,1,50,35 (70%),35,,50
+13,6.2,,1VM 1disk 50GB 35usage - IBM ISCSI,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,1,50,35 (70%),35,,50
+14,6.3,,1VM 1disk 50GB 35usage - IBM FC,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,1,1,50,35 (70%),35,,50
+15,6.4,,1VM 1TB 820GB usage - IBM ISCSI,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,1,1000,820 (82%),820,,1000
+16,6.5,,1VM 1TB 820GB usage - IBM FC,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,1,1,1000,820 (82%),820,,1000
+17,6.6,,1VM 1TB 820GB usage - FIO - IBM ISCSI,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,1,1000,820 (82%),820,,1000
+18,6.7,,1VM 2disk 50GB 20usage - IBM ISCSI,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,2,50,20 (40%),20,,100
+19,7.0,,10VMs Mixed 50GB 35usage 1ESXI 1disk - IBM FC,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,10,1,50,35 (70%),35,,500
+20,7.1,,10VMs 50GB 35usage 1ESXI 1disk - IBM ISCSI,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,10,1,50,35 (70%),35,,500
+21,7.2,,10VMs 50GB 35usage 1ESXI 1disk - IBM FC,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,10,1,50,35 (70%),35,,500
+22,7.3,,10VMs 50GB 35usage 1ESXI 1disk - IBM FC,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,1,12,10,1,50,35 (70%),35,,500
+23,7.4,,50VMs 50GB 35usage 5ESXI 1disk - IBM FC,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,5,12,50,1,50,35 (70%),35,,2500
+24,7.5,,50VMs Soak 50GB 35usage 5ESXI 1disk - IBM FC,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,fc,ceph-rbd,5,12,50,1,50,35 (70%),35,,2500
+25,7.6,,80VMs 50GB 35usage 8ESXI 1disk - IBM ISCSI,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,8,12,80,1,50,35 (70%),35,,4000
+26,8.0,,AIO 10VMs 50GB 35usage 1ESXI 1disk - IBM ISCSI,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,10,1,50,35 (70%),35,,500
+27,9.0,,1VM 1TB 820usage - Storage-offload - IBM ISCSI,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,1,1000,820 (82%),820,,1000
+28,9.1,,1VM 1TB 820usage - Storage-offload - IBM ISCSI,2-12-0,,20,warm,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,1,1,1000,820 (82%),820,,1000
+29,9.2,,5VM 10disk 50gb - Storage-offload - IBM ISCSI,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,5,10,50,20 (40%),20,,2500
+30,9.3,,50VM 2disk 50gb - Storage-offload - IBM ISCSI,2-12-0,,20,cold,,,,,,,vSphere7.0 VC-1,vcenter,,iscsi,ceph-rbd,1,12,50,2,50,20 (40%),20,,5000

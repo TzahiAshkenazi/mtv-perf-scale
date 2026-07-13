@@ -1,0 +1,84 @@
+---
+- name: Delete VM snapshots using govc
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - containers.podman
+
+  vars:
+    GOVC_URL: "{{ vSphere_url }}"
+    GOVC_USERNAME: "{{ lookup('env', 'vsphere_user') | default('administrator@vsphere.local', true) }}"
+    GOVC_PASSWORD: "{{ lookup('env', 'vsphere_pw') }}"
+    GOVC_INSECURE: "true"
+    TempFolder: "{{ outPath }}"
+
+  tasks:
+    - name: Read VM names from file
+      ansible.builtin.slurp:
+        src: "{{ vm_names_file }}"
+      register: vmnames_file
+
+    - name: Set VM list variable
+      set_fact:
+        vm_names_list: "{{ (vmnames_file.content | b64decode).splitlines() | reject('equalto', '') | list }}"
+
+    - name: Build the mygovc image from Dockerfile
+      ansible.builtin.shell: podman build -t localhost/mygovc:latest -f Dockerfile.govc .
+
+    - name: Pause for 3 seconds
+      ansible.builtin.pause:
+        seconds: 3
+
+    - name: Start govc container for efficient execution
+      podman_container:
+        name: govc_runner
+        image: localhost/mygovc:latest
+        state: started
+        pull: never
+        env:
+          GOVC_URL: "{{ GOVC_URL }}"
+          GOVC_USERNAME: "{{ GOVC_USERNAME }}"
+          GOVC_PASSWORD: "{{ GOVC_PASSWORD }}"
+          GOVC_INSECURE: "{{ GOVC_INSECURE }}"
+
+    - name: Pause for 3 seconds
+      ansible.builtin.pause:
+        seconds: 3          
+
+    - name: Remove all snapshots for each VM
+      shell: |
+        podman exec govc_runner govc snapshot.remove -vm '{{ item }}' '*'
+      loop: "{{ vm_names_list }}"
+      register: snapshot_info
+      ignore_errors: true
+      loop_control:
+        pause: 3
+
+    - name: Create output file
+      shell: |
+        > "{{ TempFolder }}"/CountSnapshots.txt
+
+    - name: Verify all VMs have no snapshots
+      shell: |
+        podman exec govc_runner govc snapshot.tree -vm '{{ item }}' >> "{{ TempFolder }}"/CountSnapshots.txt
+      loop: "{{ vm_names_list }}"
+      register: snapshot_info
+      ignore_errors: true
+      loop_control:
+        pause: 3
+
+    - name: Stop govc container
+      podman_container:
+        name: govc_runner
+        state: absent
+
+    - name: Pause for 3 seconds
+      ansible.builtin.pause:
+        seconds: 3
+
+    - name: Remove mygovc image
+      podman_image:
+        name: localhost/mygovc
+        tag: latest
+        state: absent
+

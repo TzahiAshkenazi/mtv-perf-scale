@@ -1,0 +1,25 @@
+---
+- name: Run Collect Metrics over all ESXs
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    TempFolder: "{{ TempPath }}"
+    ReportPath: "{{ LogsPath }}"
+
+  tasks:
+    - name: Read ESX names from file
+      ansible.builtin.slurp:
+        src: "{{ TempFolder }}/esxlist.txt"
+      register: esx_hosts_name
+
+    - name: Set Host list variable
+      set_fact:
+        host_names_list: "{{ (esx_hosts_name.content | b64decode).splitlines() | reject('equalto', '') | list }}"
+
+    - name: Call Collect metrics playbook
+      shell: |
+        ansible-playbook CollectMetrics.yaml -e esx_name={{ item }} -e LogsPath={{ ReportPath }} -v &
+      loop: "{{ host_names_list }}"
+      register: esx_metric
+

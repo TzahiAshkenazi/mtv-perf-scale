@@ -1,0 +1,14 @@
+apiVersion: forklift.konveyor.io/v1beta1
+kind: Provider
+metadata:
+  name: vsphere-7.0.3-1
+  namespace: openshift-mtv
+spec:
+  type: vsphere
+  url: https://vcenter.example.com/sdk
+  settings:
+    sdkEndpoint: vcenter
+    vddkInitImage: quay.io/<your-org>/vddk:<tag>
+  secret:
+    name: vsphere-7.0.3-1-secret
+    namespace: openshift-mtv

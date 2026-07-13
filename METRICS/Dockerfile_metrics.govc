@@ -1,0 +1,15 @@
+# Use RedHat UBI
+# That image is public and hosted by Red Hat (no rate limit), perfect for RHEL environments.
+FROM registry.access.redhat.com/ubi9/ubi-minimal
+
+# Install bash (optional, but useful)
+RUN microdnf install -y bash tar gzip shadow-utils && microdnf clean all
+
+# Download latest govc binary
+RUN curl -L -o /usr/local/bin/govc https://github.com/vmware/govmomi/releases/latest/download/govc_Linux_x86_64.tar.gz && \
+    tar -xzf /usr/local/bin/govc -C /usr/local/bin/ || true && \
+    chmod +x /usr/local/bin/govc
+
+# Create a simple entrypoint to keep the container running for 12 Hours
+ENTRYPOINT ["/bin/sh", "-c", "while true; do sleep 45000; done"]
+
