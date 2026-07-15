@@ -1,0 +1,143 @@
+---
+- name: Collect Env Details
+  hosts: localhost
+  gather_facts: false
+  vars:
+      result_directory: '/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651'
+      collect_mtv_pod_resources: True
+
+  tasks:  
+    - name: OC Login
+      shell: export KUBECONFIG=/home/$(whoami)/.kube/config && oc login -u kubeadmin -p $(cat /home/$(whoami)/clusterconfigs/auth/kubeadmin-password) -n default --insecure-skip-tls-verify=true
+
+    - name: Get CSV version
+      ansible.builtin.shell: oc get csv -n openshift-mtv | grep mtv-operator | grep -oE "v[0-9]+\\.[0-9]+(\\.[0-9]+)?" | head -1 | sed 's/^v//'
+      register: csv_version_raw
+      changed_when: false
+
+    - name: Set fact if CSV version is 2.9 or greater
+      ansible.builtin.set_fact:
+        is_mtv_2_9_or_greater: "{{ csv_version_raw.stdout | default('0.0') is version('2.9', '>=') }}"
+
+    - name: MTV Version | execute find-version-build script
+      shell:
+        cmd: "bash find-version-build.sh mtv-operator openshift-mtv"
+      register: version_cmd
+
+    - name: MTV Version | store versions
+      set_fact: 
+        mtv_version: "{{ version_cmd.stdout | split('::') | last  }}"
+        mtv_iib: "{{ version_cmd.stdout | split('::') | first | split('/') | last  }}"
+      when: is_mtv_2_9_or_greater
+
+    - name: MTV Version | store versions
+      set_fact: 
+        mtv_version: "{{ version_cmd.stdout | split('mtv-operator-bundle-container-') | last  }}"
+        mtv_iib: "{{ version_cmd.stdout | split('mtv-operator-bundle-container-') | first | replace ('iib:', '') | replace ('\n', '') }}"
+      when: is_mtv_2_9_or_greater == False   
+
+    - name: CNV Version | execute find-version-build script
+      shell:
+        cmd: "bash find-version-build.sh kubevirt-hyperconverged openshift-cnv"
+      register: version_cmd_cnv
+
+    - name: CNV Version | store versions
+      set_fact: 
+        cnv_version: "{{ version_cmd_cnv.stdout | regex_replace('^kubevirt-hyperconverged-operator[\\.\\v](.*)$', '\\1') }}"
+        cnv_iib: "{{ ('iib' not in version_cmd_cnv.stdout )|ternary('none', version_cmd_cnv.stdout | split('iib:') | last) }}"
+
+    - name: Gather Openshift Storage Version
+      shell: oc -n openshift-storage get csv -o yaml | grep full_version | tail -n 1
+      register: openshift_storage_cmd
+
+    - name: Get ODF version
+      set_fact:
+        openshift_storage_version: "{{ openshift_storage_cmd.stdout | split('full_version: ') | last  }}"
+
+    - name: Gather OpenShift version
+      shell: oc version -o json
+      register: oc_version_output
+      changed_when: false
+      
+    - name: Get OpenShift Cluster Name
+      shell: oc config view --minify -o jsonpath='{.clusters[0].name}'
+      register: oc_cluster_output
+      changed_when: false
+
+    - name: Store OPenshift Cluster name
+      set_fact:
+        cluster_name: "{{ oc_cluster_output.stdout | replace ('-', '.') | replace ('api.', '') | replace (':6443', '') }}"
+    
+
+    - name: Parse OpenShift version from the output
+      set_fact:
+        openshift_version: "{{ oc_version_output.stdout | from_json | json_query('openshiftVersion') }}"
+
+    - name: Gather nodes information
+      k8s_info:
+        api_version: v1
+        kind: Node
+      register: node_info
+
+    - name: Count worker nodes
+      set_fact:
+        worker_nodes_count: "{{ node_info.resources | selectattr('metadata.labels', 'defined') | 
+                         selectattr('metadata.labels.node-role.kubernetes.io/master', 'undefined') |
+                         selectattr('spec.taints', 'undefined') | list | length }}"
+        master_nodes_count: "{{ node_info.resources | selectattr('metadata.labels', 'defined') | 
+                         selectattr('metadata.labels.node-role.kubernetes.io/worker', 'undefined') |
+                         selectattr('spec.taints', 'undefined') | list | length }}"
+
+    - block:
+        - name: Get all Pods in MTV ns
+          k8s_info:
+            api_version: v1
+            kind: Pod
+            namespace: "{{ mtv_namespace | default('openshift-mtv')}}"
+          register: pods_info
+
+
+        - name: Build dictionary with cleaned pod names and container resources
+          set_fact:
+            pod_resource_dict: "{{ pod_resource_dict | default({}) | combine({
+              (item.metadata.name | regex_replace('^(.*)-[^-]+-[^-]+$', '\\1')):
+              (item.spec.containers | items2dict(key_name='name', value_name='resources'))}) }}"
+          loop: "{{ pods_info.resources }}"
+
+        - name: Show the resulting pod resource dictionary
+          debug:
+            var: pod_resource_dict
+            
+       
+      when: collect_mtv_pod_resources
+
+    - name: Create JSON with collected information
+      set_fact:
+        details:
+          target_env: "{{ details.target_env | default({})  | combine({item.key: item.value}) }}"
+      with_items:
+        - { key: 'openshift_version', value: "{{ openshift_version|default('none') }}" }
+        - { key: 'openshift_cluster', value: "{{ cluster_name|default('none') }}" }
+        - { key: 'node_worker_count', value: "{{ worker_nodes_count|default('none') }}" }
+        - { key: 'node_master_count', value: "{{ master_nodes_count|default('none') }}" }
+        - { key: 'mtv_version',  value: "{{ mtv_version|default('none') }}" }
+        - { key: 'mtv_iib',  value: "{{mtv_iib|default('none')}}" }
+        - { key: 'cnv_version',  value: "{{ cnv_version|default('none') }}" }
+        - { key: 'cnv_iib',  value: "{{cnv_iib|default('none')}}" }
+        - { key: 'openshift_storage_version',  value: "{{openshift_storage_version|default('none')}}" }
+        - { key: 'mtv_pod_resources',  value: "{{pod_resource_dict|default('none')}}" }
+  
+
+    - name: 
+      file:
+        path: "{{ result_directory }}/.report-artifacts"
+        state: directory
+
+    - name: Create JSON with collected information
+      copy:
+        content: |
+          {{details | to_json(indent=4, sort_keys=False) }}
+        dest: "{{ result_directory }}/.report-artifacts/env_meta_info.json"
+
+
+

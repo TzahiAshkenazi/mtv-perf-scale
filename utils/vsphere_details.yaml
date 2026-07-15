@@ -1,0 +1,64 @@
+---
+- name: Get disk usage via VMware Tools with vm_id lookup
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    GOVC_URL: "{{ vSphere_url }}"
+    GOVC_PASSWORD: "{{ lookup('env', 'vsphere_pw') }}"
+    vcenter_username: "{{ lookup('env', 'vsphere_user') | default('administrator@vsphere.local', true) }}"
+    vm_name: "rhel79-50gb-20usage-enbd-2disks-vm-150"
+    total_vms: 1
+    guest_user: "{{ lookup('env', 'vsphere_os_user') | default('root', true) }}"
+    guest_pw: "{{ lookup('env', 'scale_lab_pw') }}"
+    result_directory: '/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651'
+    dc_info: ''
+
+  tasks:
+    - name: Pull the govc container image
+      shell: podman pull docker.io/vmware/govc:latest
+
+    - name: Check if VM is powered on using govc container
+      shell: |
+        podman run -e GOVC_URL={{ GOVC_URL }} \
+        -e GOVC_USERNAME={{ vcenter_username }} \
+        -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+        -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+        /govc datacenter.info
+      register: dc_info
+
+    - name: Create JSON with collected information
+      set_fact:
+        dc_info: >-
+          {{
+            dict(dc_info.stdout_lines 
+                | map('trim') 
+                | map('split', ':') 
+                | map('map', 'trim') 
+                | list)
+          }}
+    
+
+    - name: Write VM info to dict
+      set_fact:
+        vsphere_env:
+          source_env:
+              url: "{{ GOVC_URL }}"
+              name: "{{ dc_info['Name'] }}"
+              hosts: "{{ dc_info['Hosts'] | int }}"
+              clusters: "{{ dc_info['Clusters'] | int }}"
+              vms: "{{ dc_info['Virtual Machines'] | int }}"
+              networks: "{{ dc_info['Networks'] | int }}"
+              datastores: "{{ dc_info['Datastores'] | int}}"
+
+
+    - name: Create Result folder
+      file:
+        path: "{{ result_directory }}/.report-artifacts"
+        state: directory
+
+    - name: Create JSON with collected information
+      copy:
+        content: |
+          {{vsphere_env | to_nice_json }}
+        dest: "{{ result_directory }}/.report-artifacts/vsphere_details.json"

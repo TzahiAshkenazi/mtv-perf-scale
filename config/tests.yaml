@@ -1,0 +1,830 @@
+scenarios:
+  #start of regression MTV 2.9.0 
+  # single VMs cases 
+- name: 1vm-1disk-50gb-35usage-cold-tc2-0
+  testcase: 2.0
+  case: NET-FC-C-01V-STD-01
+  description: "1VM 1disk 50GB cold (Netapp, FC)"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  PlanMigrationName: 1vm-1disk-50gb-35usage-cold-tc2-0
+  TargetMigrationNS: 1vm-1disk-50gb-35usage-cold-tc2-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-1disk-50gb-35usage-warm-tc2-1
+  testcase: 2.1
+  case: NET-ISC-W-01V-STD-01
+  description: "1VM 1disk 50GB warm (Netapp, ISCSI)"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 1vm-1disk-50gb-35usage-warm-tc2-1
+  TargetMigrationNS: 1vm-1disk-50gb-35usage-warm-tc2-1
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-2disk-50gb-35usage-warm-tc2-2
+  testcase: 2.2
+  case: NET-FC-W-01V-MDK-01
+  description: "1VM 2disk warm FC"
+  VMsPrefix: rhel79-50gb-20usage-2disks-warm-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 1vm-2disk-50gb-35usage-warm-tc2-2
+  TargetMigrationNS: 1vm-2disk-50gb-35usage-warm-tc2-2
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-3disk-50gb-35usage-warm-tc2-3
+  testcase: 2.3
+  case: NET-FC-W-01V-MDK-02
+  description: "1VM 3disks warm FC"
+  VMsPrefix: rhel79-50gb-20usage-3disks-warm-vm  # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 1vm-3disk-50gb-35usage-warm-tc2-3
+  TargetMigrationNS: 1vm-3disk-50gb-35usage-warm-tc2-3
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-1disk-1tb-820usage-cold-tc2-4
+  testcase: 2.4
+  case: NET-ISC-C-01V-LRG-01
+  description: "1VM 1TB 820GB usage cold (Netapp, ISCSI)"
+  VMsPrefix: 1tb-75-usage  # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  PlanMigrationName: 1vm-1disk-1tb-820usage-cold-tc2-4
+  TargetMigrationNS: 1vm-1disk-1tb-820usage-cold-tc2-4
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+
+- name: 1vm-1tb-366gb-usage-dynamic-fio-warm-tc2-5
+  testcase: 2.5
+  case: NET-ISC-W-01V-LRG-01
+  description: "1VM 1TB 820GB usage warm (Netapp, ISCSI)"
+  VMsPrefix: fio-1tb-warm  # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 1vm-1tb-366gb-usage-dynamic-fio-warm-tc2-5
+  TargetMigrationNS: 1vm-1tb-366gb-usage-dynamic-fio-warm-tc2-5
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  TotalPreCopies: 10
+  TestTimeoutInHours: 24
+  wait_for_final_snapshot_consolidation: 'false'
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+
+
+- name: 10vm-mixed-1disk-50gb-35usage-cold-tc2-6
+  testcase: 2.6
+  case: NET-FC-C-10V-MOS-01
+  description: "mixed 10VMs 5Win+5Rhel cold (Netapp, FC)"
+  VMsPrefix: "rhel79-50gb-70usage-vm|win2019-vm"     # VMsPrefix
+  total_vms: 10    # total_vms
+  MixedVMs: true
+  MigrationType: cold
+  PlanMigrationName: 10vm-mixed-1disk-50gb-35usage-cold-tc2-6
+  TargetMigrationNS: 10vm-mixed-1disk-50gb-35usage-cold-tc2-6
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+
+- name: 10vm-1disk-50gb-35usage-cold-tc2-7
+  testcase: 2.7
+  case: NET-FC-C-10V-STD-02
+  description: "10VMs cold FC 1ESXI"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: cold
+    #  NumOfPlans: 4
+    #  NumOfVMsPerPlan: 1
+    #  HostNetwork: vm
+    #  MaxVMInflight: 100
+    #  MaxCcReconciles: 100
+    #  MixedVMs: true
+  PlanMigrationName: 10vms-1disk-50gb-35usage-cold-tc2-7
+  TargetMigrationNS: 10vms-1disk-50gb-35usage-cold-tc2-7
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+
+- name: 80vm-1disk-50gb-35usage-cold-tc2-8
+  testcase: 2.8
+  case: NET-MIX-C-80V-STD-01
+  description: "80VMs 8ESXI mixed protocols"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 80    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 80vm-1disk-50gb-35usage-cold-tc2-8
+  TargetMigrationNS: 80vm-1disk-50gb-35usage-cold-tc2-8
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 20vm-1disk-50gb-35usage-cold-tc2-9
+  testcase: 2.9
+  case: TBD
+  description: TBD
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 20    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 20vms-1disk-50gb-35usage-cold-tc2-9
+  TargetMigrationNS: 20vms-1disk-50gb-35usage-cold-tc2-9
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-aio-buffer-1disk-50gb-35usage-cold-tc3-0
+  testcase: 3.0
+  case: NET-ANY-C-10V-AIO-01
+  description: "10VMs AIO cold"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 10vm-aio-buffer-1disk-50gb-35usage-cold-tc3-0
+  TargetMigrationNS: 10vm-aio-buffer-1disk-50gb-35usage-cold-tc3-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  aio_enable: true
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-1disk-50gb-35usage-warm-tc3-3
+  testcase: 3.3
+  case: NET-FC-W-10V-STD-01
+  description: "10VMs warm FC (Netapp)"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 10     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 10vm-1disk-50gb-35usage-warm-tc3-3
+  TargetMigrationNS: 10vm-1disk-50gb-35usage-warm-tc3-3
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 136vm-2disk-50gb-35usage-warm-tc3-4
+  testcase: 3.4
+  case: NET-ISC-W-136V-MDK-01
+  description: "136VMs 2disks warm"
+  VMsPrefix: rhel79-50gb-20usage-2disks-warm-vm   # VMsPrefix
+  total_vms: 136     # total_vms
+  MigrationType: warm
+  MaxVMInflight: 100
+  PlanMigrationName: 136vm-2disk-50gb-35usage-warm-tc3-4
+  TargetMigrationNS: 136vm-2disk-50gb-35usage-warm-tc3-4
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 50vm-1disk-50gb-35usage-cold-tc3-5
+  testcase: 3.5
+  case: NET-FC-C-50V-SOK-01
+  description: "Soak test 50VMs x 50 loops (Netapp)"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 50    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 50vm-1disk-50gb-35usage-cold-tc3-5
+  TargetMigrationNS: 50vm-1disk-50gb-35usage-cold-tc3-5
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 50
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 20vm-1disk-50gb-35usage-warm-tc3-6
+  testcase: 3.6
+  case: TBD
+  description: TBD
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 20     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 20vm-1disk-50gb-35usage-warm-tc3-6
+  TargetMigrationNS: 20vm-1disk-50gb-35usage-warm-tc3-6
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-200disk-5gb-80usage-cold-tc3-7
+  testcase: 3.7
+  case: NET-ISC-C-01V-MDK-01
+  description: "1VM 200disks 5GB 80usage cold (Netapp, ISCSI)"
+  VMsPrefix: 1vm-200disk-5gb-80usage   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  TestTimeoutInHours: 12
+  PlanMigrationName: 1vm-200disk-5gb-80usage-cold-tc3-7
+  TargetMigrationNS: 1vm-200disk-5gb-80usage-cold-tc3-7
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-200disk-5gb-80usage-warm-tc3-8
+  testcase: 3.8
+  case: NET-ISC-W-01V-MDK-01
+  description: "1VM 200disks 5GB 80usage warm (Netapp, ISCSI)"
+  VMsPrefix: 1vm-200disk-5gb-80usage   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  TestTimeoutInHours: 12
+  PlanMigrationName: 1vm-200disk-5gb-80usage-warm-tc3-8
+  TargetMigrationNS: 1vm-200disk-5gb-80usage-warm-tc3-8
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+
+- name: 1vm-1tb-offload-cold-tc4-0
+  testcase: 4.0
+  case: NET-ISC-C-01V-OFL-01
+  description: "1VM 1TB Storage-offload cold (Netapp, ISCSI)"
+  VMsPrefix: 1tb-75-usage   # VMsPrefix
+  total_vms: 1    # total_vms
+  MigrationType: cold
+  StorageOffload: true
+  PlanMigrationName: 1vm-1tb-offload-cold-tc4-0
+  TargetMigrationNS: 1vm-1tb-offload-cold-tc4-0
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: netapp-ontap-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-1tb-offload-warm-tc4-1
+  testcase: 4.1
+  case: NET-ISC-W-01V-OFL-01
+  description: "1VM 1TB offload warm"
+  VMsPrefix: 1tb-75-usage   # VMsPrefix
+  total_vms: 1    # total_vms
+  MigrationType: warm
+  StorageOffload: true
+  PlanMigrationName: 1vm-1tb-offload-warm-tc4-1
+  TargetMigrationNS: 1vm-1tb-offload-warm-tc4-1
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: netapp-ontap-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+- name: 1vm-50gb-offload-cold-tc4-4
+  testcase: 4.4
+  case: TBD
+  description: TBD
+  VMsPrefix: offload-debug-4237  # VMsPrefix
+  total_vms: 1    # total_vms
+  MigrationType: cold
+  StorageOffload: true
+  PlanMigrationName: 1vm-50gb-offload-cold-tc4-4
+  TargetMigrationNS: 1vm-50gb-offload-cold-tc4-4
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: netapp-ontap-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+
+
+
+
+- name: 10vms-50gb-35usage-warm-multiplans-tc5-0
+  testcase: 5.0
+  case: ANY-ANY-W-10V-MPL-01
+  description: "10vms multi-plan"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  NumOfPlans: 10
+  NumOfVMsPerPlan: 1
+  MigrationType: warm
+  PlanMigrationName: 10vms-50gb-35usage-warm-multiplans-tc5-0
+  TargetMigrationNS: 10vms-50gb-35usage-warm-multiplans-tc5-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 50vms-50gb-35usage-warm-multiplans-tc5-1
+  testcase: 5.1
+  case: ANY-ANY-W-50V-MPL-01
+  description: "50vms warm multi-plan"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 50    # total_vms
+  NumOfPlans: 50
+  NumOfVMsPerPlan: 1
+  MigrationType: warm
+  PlanMigrationName: 50vms-50gb-35usage-warm-multiplans-tc5-1
+  TargetMigrationNS: 50vms-50gb-35usage-warm-multiplans-tc5-1
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1      
+
+- name: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-tc6-0
+  testcase: 6.0
+  case: IBM-ISC-C-01V-STD-01
+  description: "IBM 1VM cold ISCSI"
+  VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  PlanMigrationName: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-tc6-0
+  TargetMigrationNS: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-tc6-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-rhel79-50gb-70usage-cold-fc-tc6-1
+  testcase: 6.1
+  case: IBM-FC-C-01V-STD-01
+  description: "IBM 1VM cold FC"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  PlanMigrationName: 1vm-ibm-rhel79-50gb-70usage-cold-fc-tc6-1
+  TargetMigrationNS: 1vm-ibm-rhel79-50gb-70usage-cold-fc-tc6-1
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-rhel79-50gb-70usage-warm-iscsi-tc6-2
+  testcase: 6.2
+  case: IBM-ISC-W-01V-STD-01
+  description: "IBM 1VM warm ISCSI"
+  VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 1vm-ibm-rhel79-50gb-70usage-warm-iscsi-tc6-2
+  TargetMigrationNS: 1vm-ibm-rhel79-50gb-70usage-warm-iscsi-tc6-2
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-rhel79-50gb-70usage-warm-fc-tc6-3
+  testcase: 6.3
+  case: IBM-FC-W-01V-STD-01
+  description: "IBM 1VM warm FC"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 1vm-ibm-rhel79-50gb-70usage-warm-fc-tc6-3
+  TargetMigrationNS: 1vm-ibm-rhel79-50gb-70usage-warm-fc-tc6-3
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-1tb-cold-iscsi-tc6-4
+  testcase: 6.4
+  case: IBM-ISC-C-01V-LRG-01
+  description: "IBM 1VM 1TB cold ISCSI"
+  VMsPrefix: ibm-1tb-75-usage-iscsi   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  PlanMigrationName: 1vm-ibm-1tb-cold-iscsi-tc6-4
+  TargetMigrationNS: 1vm-ibm-1tb-cold-iscsi-tc6-4
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-1tb-cold-fc-tc6-5
+  testcase: 6.5
+  case: IBM-FC-C-01V-LRG-01
+  description: "IBM 1VM 1TB cold FC"
+  VMsPrefix: ibm-1tb-75-usage-fc   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  PlanMigrationName: 1vm-ibm-1tb-cold-fc-tc6-5
+  TargetMigrationNS: 1vm-ibm-1tb-cold-fc-tc6-5
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-1tb-366gb-usage-dynamic-fio-warm-iscsi-tc6-6
+  testcase: 6.6
+  case: IBM-ISC-W-01V-LRG-02
+  description: "IBM 1VM 1TB FIO warm ISCSI"
+  VMsPrefix: ibm-fio-1tb-warm-iscsi  # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 1vm-ibm-1tb-366gb-usage-dynamic-fio-warm-iscsi-tc6-6
+  TargetMigrationNS: 1vm-ibm-1tb-366gb-usage-dynamic-fio-warm-iscsi-tc6-6
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  TotalPreCopies: 10
+  TestTimeoutInHours: 24
+  wait_for_final_snapshot_consolidation: 'false'
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-2disk-50gb-35usage-warm-iscsi-tc6-7
+  testcase: 6.7
+  case: IBM-ISC-W-01V-MDK-01
+  description: "IBM 1VM 2disk warm ISCSI"
+  VMsPrefix: ibm-rhel79-50gb-20usage-2disks-iscsi-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  PlanMigrationName: 1vm-ibm-2disk-50gb-35usage-warm-iscsi-tc6-7
+  TargetMigrationNS: 1vm-ibm-2disk-50gb-35usage-warm-iscsi-tc6-7
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-ibm-mixed-1disk-50gb-35usage-cold-fc-tc7-0
+  testcase: 7.0
+  case: IBM-FC-C-10V-MOS-01
+  description: "IBM 10VMs mixed (5 RHEL + 5 Win) cold FC"
+  # Mixed: 5 VMs ibm-rhel79-50gb-70usage-fc-vm + 5 VMs ibm-win2019-fc-vm (10 total)
+  VMsPrefix: "ibm-rhel79-50gb-70usage-fc-vm|ibm-win2019-fc-vm"     # VMsPrefix
+  total_vms: 10    # total_vms
+  MixedVMs: true
+  MigrationType: cold
+  PlanMigrationName: 10vm-ibm-mixed-1disk-50gb-35usage-cold-fc-tc7-0
+  TargetMigrationNS: 10vm-ibm-mixed-1disk-50gb-35usage-cold-fc-tc7-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-1
+  testcase: 7.1
+  case: IBM-ISC-C-10V-STD-01
+  description: "IBM 10VMs cold ISCSI"
+  VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-1
+  TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-1
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-ibm-1disk-50gb-35usage-cold-fc-tc7-2
+  testcase: 7.2
+  case: IBM-FC-C-10V-STD-01
+  description: "IBM 10VMs cold FC"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-cold-fc-tc7-2
+  TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-cold-fc-tc7-2
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-ibm-1disk-50gb-35usage-warm-fc-tc7-3
+  testcase: 7.3
+  case: IBM-FC-W-10V-STD-01
+  description: "IBM 10VMs warm FC"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: warm
+  PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-warm-fc-tc7-3
+  TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-warm-fc-tc7-3
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 50vm-ibm-1disk-50gb-35usage-cold-fc-tc7-4
+  testcase: 7.4
+  case: IBM-FC-C-50V-STD-01
+  description: "IBM 50VMs cold FC"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 50    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 50vm-ibm-1disk-50gb-35usage-cold-fc-tc7-4
+  TargetMigrationNS: 50vm-ibm-1disk-50gb-35usage-cold-fc-tc7-4
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 50vm-soak-ibm-1disk-50gb-35usage-cold-fc-tc7-5
+  testcase: 7.5
+  case: IBM-FC-C-50V-SOK-01
+  description: "IBM 50VMs soak cold FC (50 loops)"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 50    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 50vm-soak-ibm-1disk-50gb-35usage-cold-fc-tc7-5
+  TargetMigrationNS: 50vm-soak-ibm-1disk-50gb-35usage-cold-fc-tc7-5
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 50
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 80vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-6
+  testcase: 7.6
+  case: IBM-ISC-C-80V-STD-01
+  description: "IBM 80VMs cold ISCSI"
+  VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
+  total_vms: 80    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 80vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-6
+  TargetMigrationNS: 80vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-6
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-ibm-aio-buffer-1disk-50gb-35usage-cold-iscsi-tc8-0
+  testcase: 8.0
+  case: IBM-ISC-C-10V-AIO-01
+  description: "IBM 10VMs AIO buffer cold ISCSI"
+  VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: cold
+  PlanMigrationName: 10vm-ibm-aio-buffer-1disk-50gb-35usage-cold-iscsi-tc8-0
+  TargetMigrationNS: 10vm-ibm-aio-buffer-1disk-50gb-35usage-cold-iscsi-tc8-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  aio_enable: true
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-1tb-offload-cold-iscsi-tc9-0
+  testcase: 9.0
+  case: IBM-ISC-C-01V-OFL-01
+  description: "IBM 1VM 1TB offload cold ISCSI"
+  VMsPrefix: ibm-1tb-75-usage-iscsi   # VMsPrefix
+  total_vms: 1    # total_vms
+  MigrationType: cold
+  StorageOffload: true
+  PlanMigrationName: 1vm-ibm-1tb-offload-cold-iscsi-tc9-0
+  TargetMigrationNS: 1vm-ibm-1tb-offload-cold-iscsi-tc9-0
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: ibm-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-1tb-offload-warm-iscsi-tc9-1
+  testcase: 9.1
+  case: IBM-ISC-W-01V-OFL-01
+  description: "IBM 1VM 1TB offload warm ISCSI"
+  VMsPrefix: ibm-1tb-75-usage-iscsi   # VMsPrefix
+  total_vms: 1    # total_vms
+  MigrationType: warm
+  StorageOffload: true
+  PlanMigrationName: 1vm-ibm-1tb-offload-warm-iscsi-tc9-1
+  TargetMigrationNS: 1vm-ibm-1tb-offload-warm-iscsi-tc9-1
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: ibm-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 5vm-10disks-ibm-50gb-usage-offload-cold-iscsi-tc9-2
+  testcase: 9.2
+  case: IBM-ISC-C-05V-OFL-MDK-01
+  description: "IBM 5VMs 10disks offload cold ISCSI"
+  VMsPrefix: ibm-rhel79-50gb-20usage-10disks-offload-iscsi-vm   # VMsPrefix
+  total_vms: 5    # total_vms
+  MigrationType: cold
+  controller_max_populator_inflight: 5
+  StorageOffload: true
+  PlanMigrationName: 5vm-10disks-ibm-50gb-usage-offload-cold-iscsi-tc9-2
+  TargetMigrationNS: 5vm-10disks-ibm-50gb-usage-offload-cold-iscsi-tc9-2
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: ibm-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 50vm-2disk-ibm-50gb-usage-offload-cold-iscsi-tc9-3
+  testcase: 9.3
+  case: IBM-ISC-C-50V-OFL-MDK-01
+  description: "IBM 50VMs 2disk offload cold ISCSI"
+  VMsPrefix: ibm-rhel79-50gb-20usage-2disks-offload-iscsi-vm   # VMsPrefix
+  total_vms: 50   # total_vms
+  MigrationType: cold
+  controller_max_populator_inflight: 2
+  StorageOffload: true
+  PlanMigrationName: 50vm-2disk-ibm-50gb-usage-offload-cold-iscsi-tc9-3
+  TargetMigrationNS: 50vm-2disk-ibm-50gb-usage-offload-cold-iscsi-tc9-3
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: ibm-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+
+- name: dsl-4-small
+  testcase: 1.0
+  case: TBD
+  description: TBD
+  VMsPrefix: dsl-4g-tck-fc-vm   # VMsPrefix
+  total_vms: 4     #tal_vms
+  MigrationType: col
+  PlanMigrationName: dsl-4-small-plan
+  TargetMigrationNS: dsl-4-small
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: dsl-4-small2
+  testcase: 1.1
+  case: TBD
+  description: TBD
+  VMsPrefix: win2019-55gb-70usage-vm   # VMsPrefix
+  total_vms: 2      # total_vms
+  MigrationType: warm
+  number_of_snapshots: 2
+  PlanMigrationName: dsl-4-small
+  TargetMigrationNS: dsl-4-small
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: windows-sanity
+  testcase: 1.2
+  case: TBD
+  description: TBD
+  VMsPrefix: win2019-55gb-70usage-vm   # VMsPrefix
+  total_vms: 2      # total_vms
+  MigrationType: cold
+  PlanMigrationName: windows-sanity
+  TargetMigrationNS: windows-sanity
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: windows-3-vms
+  testcase: 1.3
+  case: TBD
+  description: TBD
+  VMsPrefix: win2019-55gb-70usage-vm   # VMsPrefix
+  total_vms: 3      # total_vms
+  MigrationType: cold
+  PlanMigrationName: windows-sanity
+  TargetMigrationNS: windows-sanity
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: general-for-testing-tc1-0
+  testcase: 1.0
+  case: TBD
+  description: TBD
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 3    # total_vms
+  NumOfPlans: 3
+  NumOfVMsPerPlan: 1
+  MigrationType: cold
+  PlanMigrationName: general-for-testing-tc1-0
+  TargetMigrationNS: general-for-testing-tc1-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: general-example-support-parameters-tc0-0
+  testcase: 0.0
+  case: TBD
+  description: TBD
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: cold
+    #  NumOfPlans: 4
+    #  NumOfVMsPerPlan: 1
+    #  HostNetwork: vmk
+    #  MaxVMInflight: 100
+    #  MaxCcReconciles: 100
+    #  MixedVMs: true
+  PlanMigrationName: general-example-support-parameters-tc0-0
+  TargetMigrationNS: general-example-support-parameters-tc0-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+      

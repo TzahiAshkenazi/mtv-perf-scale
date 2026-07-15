@@ -1,0 +1,220 @@
+---
+- name: Get disk usage via VMware Tools with vm_id lookup
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    GOVC_URL: "{{ vSphere_url }}"
+    GOVC_USERNAME: "{{ lookup('env', 'vsphere_user') | default('administrator@vsphere.local', true) }}"
+    GOVC_PASSWORD: "{{ lookup('env', 'vsphere_pw') }}"
+    vm_name: "rhel79-50gb-70usage-vm-1"
+    total_vms: 1
+    linux_guest_user: "{{ lookup('env', 'vsphere_os_user') | default('root', true) }}"
+    linux_guest_pw: "{{ lookup('env', 'scale_lab_pw') }}"
+    windows_guest_user: "Administrator"
+    windows_guest_pw: "{{ lookup('env', 'win_os_pw') | default('', true) }}"
+    result_directory: '/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651'
+    win_cmd: '/format:csv'
+
+
+  tasks:
+    - name: Pull the govc container image
+      shell: podman pull docker.io/vmware/govc:latest
+
+    - name: Get OS Type
+      shell: |
+          podman run -e GOVC_URL={{ GOVC_URL }} \
+          -e GOVC_USERNAME={{ GOVC_USERNAME }} \
+          -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+          -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+          /govc vm.info -json '{{ vm_name }}' |  jq -r '.virtualMachines[0].config.guestFullName'
+      register: get_os_name
+
+    - name: Detect guest OS type
+      set_fact:
+        os_type: >-
+          {%- if 'windows' in get_os_name.stdout.strip()|lower -%}
+            windows
+          {%- elif 'linux' in get_os_name.stdout.strip()|lower -%}
+            linux
+          {%- else -%}
+            os_not_found
+          {% endif %}
+
+    - name: Use Correct Credentials per OS type
+      set_fact:
+        guest_user: "{{ linux_guest_user if os_type == 'linux' else windows_guest_user }}"
+        guest_pw: "{{ linux_guest_pw if os_type == 'linux' else windows_guest_pw }}"
+        os_name: "{{ get_os_name.stdout }}"
+
+    - name: Show OS User type and guest_pw 
+      debug: 
+        msg: "os_type: {{ os_type}} guest_user: {{guest_user}} guest_pw: {{ guest_pw }}"
+
+    - name: Check if VM is powered on using govc container
+      shell: |
+        podman run -e GOVC_URL={{ GOVC_URL }} \
+        -e GOVC_USERNAME={{ GOVC_USERNAME }} \
+        -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+        -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+        /govc device.ls -json -vm '{{ vm_name }}' | jq '[.devices[] | select(.type == "VirtualDisk")] | length'
+      register: num_of_disks
+
+
+    - name: Check if VM is powered on using govc container
+      shell: |
+        podman run -e GOVC_URL={{ GOVC_URL }} \
+        -e GOVC_USERNAME={{ GOVC_USERNAME }} \
+        -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+        -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+        /govc vm.info -json '{{ vm_name }}' | jq -r '.virtualMachines[0].runtime.powerState'
+      register: vm_power_state
+
+    - name: Store VM State
+      set_fact: 
+        initial_vm_status: "{{vm_power_state.stdout.strip()}}"
+
+    - name: Power on the VM if it is powered off using govc container
+      shell: |
+        podman run -e GOVC_URL={{ GOVC_URL }} \
+        -e GOVC_USERNAME={{ GOVC_USERNAME }} \
+        -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+        -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+        /govc vm.power -on {{ vm_name }}
+      when: vm_power_state.stdout.strip() == "poweredOff"
+
+    - name: Wait until the VM is powered on
+      shell: |
+        podman run -e GOVC_URL={{ GOVC_URL }} \
+        -e GOVC_USERNAME={{ GOVC_USERNAME }} \
+        -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+        -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+        /govc vm.info -json '{{ vm_name }}' | jq -r '.virtualMachines[0].runtime.powerState'
+      register: check_vm_state
+      until: check_vm_state.stdout.strip() == "poweredOn"
+      retries: 10
+      delay: 10
+
+    - block:
+        - name: Run 'df -k' in the guest using Podman container
+          shell: |
+            podman run -e GOVC_URL={{ GOVC_URL }} \
+            -e GOVC_USERNAME={{ GOVC_USERNAME }} \
+            -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+            -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+            /govc guest.run -vm "{{ vm_name }}" -l "{{ guest_user }}:{{ guest_pw }}" -- df -k
+          register: df_command
+          changed_when: false
+          until: ('could not be contacted' not in df_command.stderr)
+          retries: 10
+          delay: 10
+
+        - name: Initialize total_used_kb
+          set_fact: 
+            total_used_kb: 0
+
+        - name: Accumulate usage for each /dev/* line
+          set_fact:
+            total_used_kb: "{{ total_used_kb | int + (item.split()[2] | int) }}"
+          loop: "{{ df_command.stdout_lines }}"
+          when: item is match('^/dev/')
+
+        - name: Show the raw df -k output for reference
+          debug:
+            var: df_command.stdout_lines
+
+        - name: Save Util value
+          set_fact: 
+            disk_total_MB: "{{ total_used_kb|int // 1024|int }}"
+
+        - name: Print total used KB
+          debug:
+            msg: "Total used on all /dev/* filesystems in {{ vm_name }}: {{ total_used_kb }} KB"
+
+      when: os_type == 'linux'
+
+    - block:
+        - name: Get Windows disk usage in the guest using Podman container
+          shell: podman run -e GOVC_URL={{ GOVC_URL }} -e GOVC_USERNAME={{ GOVC_USERNAME }} -e GOVC_PASSWORD={{ GOVC_PASSWORD }} -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest /govc vm.info -json {{ vm_name }} | jq -r '.virtualMachines[0].guest.disk'
+          register: disk_command
+          changed_when: false
+          until: ('could not be contacted' not in disk_command.stderr)
+          retries: 10
+          delay: 10
+
+        - name: Parse guest OS type from govc output
+          set_fact: 
+            guest_disks: "{{disk_command.stdout | from_json }}"
+
+        - name: Initialize total used space for Windows disks
+          set_fact:
+            total_used_bytes: 0
+
+        - debug:
+            var: guest_disks
+
+        - debug:
+            msg: "{{guest_disks | type_debug }}"
+
+        - name: Sum capacity - freeSpace for each disk
+          set_fact:
+            total_used_bytes: "{{ total_used_bytes | int + (item.capacity| default(0) | int - item.freeSpace|default(0) | int) }}"
+          loop: "{{ guest_disks | default([]) }}"
+
+        - name: Convert total used bytes to KB
+          set_fact:
+            total_used_kb: "{{ total_used_bytes|int // 1024|int }}"
+
+        - name: Convert total used bytes to MB
+          set_fact: 
+            disk_total_MB: "{{ total_used_kb|int // 1024|int }}"
+
+        - debug:
+            msg: "Total used across all Windows disks is {{ disk_total_MB }} MB"
+       
+      when: os_type == 'windows'
+
+    - name: Print total used in MB/GB
+      debug:
+        msg: >-
+          {{ vm_name }} usage = {{ total_used_kb|int // 1024|int }} MB 
+
+    - name: Return VM to original power state (power off if initially powered off)
+      shell: |
+        podman run -e GOVC_URL={{ GOVC_URL }} \
+          -e GOVC_USERNAME={{ GOVC_USERNAME }} \
+          -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+          -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+          /govc vm.power -off '{{ vm_name }}'
+      when: initial_vm_status == "poweredOff"
+
+    - name: Wait until the VM is powered off to confirm return to initial state
+      shell: |
+        podman run -e GOVC_URL={{ GOVC_URL }} \
+          -e GOVC_USERNAME={{ GOVC_USERNAME }} \
+          -e GOVC_PASSWORD={{ GOVC_PASSWORD }} \
+          -e GOVC_INSECURE=true --rm docker.io/vmware/govc:latest \
+          /govc vm.info -json '{{ vm_name }}' | jq -r '.virtualMachines[0].runtime.powerState'
+      register: check_vm_state_off
+      until: check_vm_state_off.stdout.strip() == "poweredOff"
+      retries: 10
+      delay: 10
+      when: initial_vm_status == "poweredOff"
+
+    - name: 
+      file:
+        path: "{{ result_directory }}/.report-artifacts"
+        state: directory
+
+
+    - name: Write VM info to dict
+      set_fact:
+        vm_info:
+          source_vm: 
+            vm_details: "{{ {'name': vm_name, 'os_name': os_name, 'os_type': os_type, 'total_vms': total_vms|int, 'single_vm_util_mb': disk_total_MB|int, 'plan_total_util_mb': (disk_total_MB|int * total_vms|int), 'disks_per_vm': num_of_disks.stdout|int|default(0) }  }}"
+
+    - name: Create JSON with collected information
+      copy:
+        content: |
+          {{vm_info | to_nice_json }}
+        dest: "{{ result_directory }}/.report-artifacts/vm_util_info.json"
