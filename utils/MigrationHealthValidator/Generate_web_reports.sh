@@ -226,14 +226,35 @@ if [[ -f "$TEMP_DIR/backups/index.html.full-featured-backup" ]]; then
             # Convert folder name to display name (2-12-0-05 -> 2.12.0-05)
             display_name=$(echo "$vname" | sed 's/^\([0-9]\+\)-\([0-9]\+\)-/\1.\2./' | sed 's/-\([0-9]\+\)$/-\1/')
             
-            # Extract major.minor for section
-            if [[ "$vname" =~ ^2[.-]([0-9]+) ]]; then
-                minor="${BASH_REMATCH[1]}"
+            # Extract major.minor for section (supports MTV 2.x, 5.x, etc.)
+            major=""
+            minor=""
+            if [[ "$vname" =~ ^([0-9]+)[.-]([0-9]+) ]]; then
+                major="${BASH_REMATCH[1]}"
+                minor="${BASH_REMATCH[2]}"
+            fi
+            
+            section_name="MTV ${major}.${minor}"
+            
+            # Check if section exists, if not create it
+            if ! grep -q "$section_name " "$TEMP_DIR/index.html"; then
+                echo "    Creating new section: $section_name"
+                # Insert new section before the first existing MTV section
+                awk -v section="$section_name" '
+                /class="section-title".*MTV [0-9]/ && !inserted {
+                    print "        <h2 class=\"section-title\" onclick=\"toggleSection(this)\" style=\"cursor: pointer;\">📦 " section " <span class=\"toggle-icon\">▼</span></h2>"
+                    print "        <div class=\"version-grid\">"
+                    print "        </div>"
+                    print ""
+                    inserted=1
+                }
+                { print }
+                ' "$TEMP_DIR/index.html" > "$TEMP_DIR/index.html.tmp" && mv "$TEMP_DIR/index.html.tmp" "$TEMP_DIR/index.html"
             fi
             
             # Find the section and add card after version-grid div using awk
-            # Pattern: look for "MTV 2.XX " (with space) in section title, then add after version-grid
-            awk -v vname="$vname" -v dname="$display_name" -v pattern="MTV 2.$minor " '
+            # Pattern: look for "MTV X.YY " (with space) in section title, then add after version-grid
+            awk -v vname="$vname" -v dname="$display_name" -v pattern="$section_name " '
             index($0, pattern) > 0 { found_section=1 }
             found_section && /version-grid/ {
                 print
@@ -251,7 +272,7 @@ if [[ -f "$TEMP_DIR/backups/index.html.full-featured-backup" ]]; then
             if grep -q "href=\"results-data/${vname}/index.html" "$TEMP_DIR/index.html"; then
                 echo "    [OK] Card added"
             else
-                echo "    [WARN] Failed to add card, section MTV 2.${minor} may not exist"
+                echo "    [WARN] Failed to add card for $vname"
             fi
         fi
     done
