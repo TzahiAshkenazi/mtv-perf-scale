@@ -210,6 +210,225 @@ if [[ -f "$TEMP_DIR/backups/index.html.full-featured-backup" ]]; then
     
     echo "Updated versions array"
     
+    # Add Pipeline Comparison Feature if not present
+    echo ""
+    echo "=== Adding Pipeline Comparison Feature ==="
+    
+    # 1. Add checkbox header to compare table
+    if ! grep -q 'select-all-versions' "$TEMP_DIR/index.html"; then
+        echo "  Adding checkbox header..."
+        sed -i 's|<th>MTV Version</th>|<th style="width:30px;"><input type="checkbox" id="select-all-versions" onclick="toggleAllVersions()" title="Select All"></th><th>MTV Version</th>|' "$TEMP_DIR/index.html"
+    fi
+    
+    # 2. Add checkbox to row template in JavaScript
+    if ! grep -q 'version-checkbox' "$TEMP_DIR/index.html"; then
+        echo "  Adding checkbox to row template..."
+        sed -i 's|<td><strong>\${d.version.replace(/-/g|<td><input type="checkbox" class="version-checkbox" data-version="\${d.version}" data-tcname="\${currentTCName}"></td><td><strong>\${d.version.replace(/-/g|' "$TEMP_DIR/index.html"
+    fi
+    
+    # 3. Add Compare Pipeline button before compare table
+    if ! grep -q 'compare-pipeline-btn' "$TEMP_DIR/index.html"; then
+        echo "  Adding Compare Pipeline button..."
+        sed -i 's|<table class="compare-table" id="compare-table">|<div style="margin-bottom:15px;"><button onclick="comparePipelineBreakdown()" id="compare-pipeline-btn" style="background:#fd7e14; color:white; padding:12px 24px; font-size:16px; font-weight:bold; border-radius:20px; border:none; cursor:pointer;">📊 Compare Pipeline (0)</button></div><table class="compare-table" id="compare-table">|' "$TEMP_DIR/index.html"
+    fi
+    
+    # 4. Add event delegation for checkbox count update
+    if ! grep -q 'compare-tbody.*onchange' "$TEMP_DIR/index.html"; then
+        echo "  Adding event delegation..."
+        sed -i '/tbody.appendChild(row);/a\            document.getElementById("compare-tbody").onchange = function(e) { if(e.target.classList.contains("version-checkbox")) { var c = document.querySelectorAll(".version-checkbox:checked").length; var btn = document.getElementById("compare-pipeline-btn"); if(btn) { btn.textContent = "📊 Compare Pipeline (" + c + ")"; } } };' "$TEMP_DIR/index.html"
+    fi
+    
+    # 5. Add Pipeline Comparison JavaScript functions
+    if ! grep -q 'comparePipelineBreakdown' "$TEMP_DIR/index.html"; then
+        echo "  Adding Pipeline Comparison JavaScript..."
+        # Create temp JS file
+        cat > "$TEMP_DIR/pipeline-compare.js" << 'PIPELINEJS'
+// ===== Pipeline Comparison Feature =====
+
+function toggleAllVersions() {
+    var selectAll = document.getElementById("select-all-versions");
+    var checkboxes = document.querySelectorAll(".version-checkbox");
+    checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
+    var c = document.querySelectorAll(".version-checkbox:checked").length;
+    var btn = document.getElementById("compare-pipeline-btn");
+    if(btn) { btn.textContent = "📊 Compare Pipeline (" + c + ")"; }
+}
+
+async function comparePipelineBreakdown() {
+    var checkboxes = document.querySelectorAll(".version-checkbox:checked");
+    if (checkboxes.length < 2) {
+        alert("Select at least 2 versions to compare");
+        return;
+    }
+    
+    var results = [];
+    for (var i = 0; i < checkboxes.length; i++) {
+        var cb = checkboxes[i];
+        var version = cb.dataset.version;
+        var tcname = cb.dataset.tcname;
+        try {
+            var resp = await fetch("results-data/" + version + "/" + tcname + "/index.html");
+            if (resp.ok) {
+                var html = await resp.text();
+                var breakdown = extractBreakdownFromHTML(html, version);
+                results.push(breakdown);
+            } else {
+                results.push({version: version, error: "Failed to fetch"});
+            }
+        } catch (err) {
+            results.push({version: version, error: err.message});
+        }
+    }
+    
+    showPipelineCompareModal(results);
+}
+
+function extractBreakdownFromHTML(html, version) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, "text/html");
+    
+    var headers = doc.querySelectorAll("th.breakdown-header");
+    var headerNames = [];
+    headers.forEach(function(h) { headerNames.push(h.textContent.trim().replace(" (Avg)", "")); });
+    
+    var rows = doc.querySelectorAll("tbody tr");
+    var cycles = [];
+    
+    rows.forEach(function(row) {
+        var cells = row.querySelectorAll("td");
+        var breakdownCells = row.querySelectorAll("td.breakdown-col");
+        if (breakdownCells.length > 0) {
+            var cycleData = {
+                cycle: cells[0] ? cells[0].textContent.trim() : "",
+                date: cells[1] ? cells[1].textContent.trim() : "",
+                vms: breakdownCells[0] ? breakdownCells[0].textContent.trim() : "1"
+            };
+            for (var i = 1; i < breakdownCells.length && i <= headerNames.length; i++) {
+                var hdr = headerNames[i] || ("col" + i);
+                cycleData[hdr] = breakdownCells[i] ? breakdownCells[i].textContent.trim().replace(/[↑↓▲▼]/g, "").trim() : "N/A";
+            }
+            cycles.push(cycleData);
+        }
+    });
+    
+    var stepAvgs = {};
+    headerNames.forEach(function(h) {
+        if (h && h !== "VMs") {
+            var vals = cycles.map(function(c) { return parseTimeToSeconds(c[h] || "0:00"); }).filter(function(v) { return v > 0; });
+            stepAvgs[h] = vals.length > 0 ? vals.reduce(function(a,b){return a+b;},0) / vals.length : 0;
+        }
+    });
+    
+    return {
+        version: version.replace(/-/g, "."),
+        cycles: cycles,
+        stepAvgs: stepAvgs,
+        headers: headerNames.filter(function(h) { return h && h !== "VMs"; })
+    };
+}
+
+function parseTimeToSeconds(timeStr) {
+    if (!timeStr || timeStr === "N/A") return 0;
+    var parts = timeStr.split(":").map(Number);
+    if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+    if (parts.length === 2) return parts[0]*60 + parts[1];
+    return parts[0] || 0;
+}
+
+function formatSecToTime(sec) {
+    if (!sec || sec <= 0) return "N/A";
+    var h = Math.floor(sec / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = Math.floor(sec % 60);
+    if (h > 0) return h + ":" + String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+    return m + ":" + String(s).padStart(2,"0");
+}
+
+function showPipelineCompareModal(results) {
+    var existing = document.getElementById("pipeline-compare-modal");
+    if (existing) existing.remove();
+    
+    var allHeaders = new Set();
+    results.forEach(function(r) { (r.headers || []).forEach(function(h) { allHeaders.add(h); }); });
+    var headerList = Array.from(allHeaders);
+    
+    var tcName = document.querySelector(".version-checkbox:checked") ? document.querySelector(".version-checkbox:checked").dataset.tcname : "";
+    
+    var tableHTML = '<table style="width:100%; border-collapse:collapse; font-size:16px;">';
+    tableHTML += '<thead><tr style="background:#1a5f7a;"><th style="padding:12px 20px; text-align:center; color:#fff; min-width:100px;">Version</th>';
+    headerList.forEach(function(h) {
+        tableHTML += '<th style="padding:12px 20px; text-align:center; color:#fff; min-width:90px;">' + h + '</th>';
+    });
+    tableHTML += '</tr></thead><tbody>';
+    
+    var prevVals = {};
+    results.forEach(function(r, idx) {
+        if (r.error) {
+            tableHTML += '<tr style="border-bottom:1px solid #eee;"><td style="padding:12px 20px; color:#333; text-align:center;">' + r.version + '</td><td colspan="' + headerList.length + '" style="color:#e94560; padding:12px 20px;">' + r.error + '</td></tr>';
+        } else {
+            tableHTML += '<tr style="border-bottom:1px solid #eee;"><td style="padding:12px 20px; font-weight:bold; color:#333; text-align:center; min-width:100px;">' + r.version + '</td>';
+            headerList.forEach(function(h) {
+                var val = r.stepAvgs ? r.stepAvgs[h] : 0;
+                var arrow = "";
+                var arrowStyle = "";
+                if (idx > 0 && prevVals[h] && val > 0) {
+                    if (val < prevVals[h]) {
+                        arrow = " ▼";
+                        arrowStyle = "color:#4caf50; font-size:14px; font-weight:bold;";
+                    } else if (val > prevVals[h]) {
+                        arrow = " ▲";
+                        arrowStyle = "color:#e94560; font-size:14px; font-weight:bold;";
+                    }
+                }
+                tableHTML += '<td style="padding:12px 20px; text-align:center; color:#333; min-width:90px;">' + formatSecToTime(val) + '<span style="' + arrowStyle + '">' + arrow + '</span></td>';
+                prevVals[h] = val;
+            });
+            tableHTML += '</tr>';
+        }
+    });
+    tableHTML += '</tbody></table>';
+    
+    var modal = document.createElement("div");
+    modal.id = "pipeline-compare-modal";
+    modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center;";
+    
+    var content = document.createElement("div");
+    content.style.cssText = "background:#ffffff; border-radius:12px; padding:30px; min-width:1000px; max-width:95%; max-height:95%; overflow:auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);";
+    
+    var header = document.createElement("div");
+    header.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;";
+    header.innerHTML = '<h3 style="margin:0; color:#333;">📊 ' + tcName + '</h3>';
+    
+    var closeBtn = document.createElement("button");
+    closeBtn.innerHTML = "&times;";
+    closeBtn.style.cssText = "background:none; border:none; color:#333; font-size:28px; cursor:pointer; font-weight:bold;";
+    closeBtn.onclick = function() { modal.remove(); };
+    header.appendChild(closeBtn);
+    
+    content.appendChild(header);
+    
+    var tableDiv = document.createElement("div");
+    tableDiv.innerHTML = tableHTML;
+    content.appendChild(tableDiv);
+    
+    var legend = document.createElement("p");
+    legend.style.cssText = "color:#666; font-size:14px; margin-top:15px;";
+    legend.innerHTML = '<span style="color:#4caf50; font-weight:bold;">▼ Faster</span> | <span style="color:#e94560; font-weight:bold;">▲ Slower</span> (compared to previous row). Values are averages across cycles.';
+    content.appendChild(legend);
+    
+    modal.appendChild(content);
+    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+}
+// ===== End Pipeline Comparison =====
+PIPELINEJS
+        # Inject JS after the opening <script> tag
+        sed -i '/<script>$/r '"$TEMP_DIR/pipeline-compare.js" "$TEMP_DIR/index.html"
+        rm -f "$TEMP_DIR/pipeline-compare.js"
+    fi
+    
+    echo "  Pipeline comparison feature added"
+    
     # Add missing version cards to HTML
     echo ""
     echo "=== Checking for missing version cards ==="
