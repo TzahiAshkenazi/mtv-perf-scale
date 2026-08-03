@@ -2974,23 +2974,24 @@ display_multi_cycle_summary() {
 #######################################
 
 # Extract pipeline step breakdown from Migration JSON
-# Returns: mig_type|init|diskalloc_or_preflight|imgconv|transfer|cutover|vmcreate|consolidation (8 values)
-# mig_type is "warm" or "cold" (from .spec.warm), rest are durations in seconds
+# Returns: mig_type|vm_count|init|diskalloc_or_preflight|imgconv|transfer|cutover|vmcreate|consolidation (9 values)
+# mig_type is "warm" or "cold", vm_count is number of VMs, rest are avg durations in seconds
 extract_pipeline_breakdown() {
     local migration_json_file="$1"
     
     if [[ ! -f "$migration_json_file" ]]; then
-        echo "cold|0|0|0|0|0|0|0"
+        echo "cold|0|0|0|0|0|0|0|0"
         return 1
     fi
     
     local result=$(jq -r '
     .status.vms as $vms |
+    ($vms | length) as $vm_count |
     # Detect warm migration: if Cutover step exists with duration > 0, its warm
     ([$vms[].pipeline[]? | select(.name == "Cutover") | select(.started != null and .completed != null)] | length > 0) as $is_warm |
     (if $is_warm then "warm" else "cold" end) as $mig_type |
-    if ($vms | length) == 0 then
-        "cold|0|0|0|0|0|0|0"
+    if $vm_count == 0 then
+        "cold|0|0|0|0|0|0|0|0"
     else
         def calc_avg(step_name):
             [$vms[].pipeline[]? | select(.name == step_name) |
@@ -3007,11 +3008,11 @@ extract_pipeline_breakdown() {
         # DiskTransferV2v (cold) or DiskTransfer (warm)
         (if calc_avg("DiskTransferV2v") > 0 then calc_avg("DiskTransferV2v") else calc_avg("DiskTransfer") end) as $col4 |
         
-        "\($mig_type)|\(calc_avg("Initialize"))|\($col2)|\(calc_avg("ImageConversion"))|\($col4)|\(calc_avg("Cutover"))|\(calc_avg("VirtualMachineCreation"))|\(calc_avg("WaitForFinalSnapshotConsolidation"))"
+        "\($mig_type)|\($vm_count)|\(calc_avg("Initialize"))|\($col2)|\(calc_avg("ImageConversion"))|\($col4)|\(calc_avg("Cutover"))|\(calc_avg("VirtualMachineCreation"))|\(calc_avg("WaitForFinalSnapshotConsolidation"))"
     end
     ' "$migration_json_file" 2>/dev/null)
     
-    echo "${result:-cold|0|0|0|0|0|0|0}"
+    echo "${result:-cold|0|0|0|0|0|0|0|0}"
 }
 
 # Format seconds to mm:ss or h:mm:ss
@@ -3395,10 +3396,21 @@ generate_test_index() {
     
     local index_file="${test_output}/index.html"
     
-    # Detect migration type from first cycle to set column headers
+    # Pre-scan cycles to detect migration type and max VM count
     local first_mig_type=$(echo "${cycle_info[0]}" | cut -d'|' -f4)
+    local max_vm_count=0
+    for info in "${cycle_info[@]}"; do
+        local vc=$(echo "$info" | cut -d'|' -f5)
+        [[ ${vc:-0} -gt $max_vm_count ]] && max_vm_count=${vc:-0}
+    done
+    
+    # Set column headers based on migration type and VM count
     local diskalloc_header="DiskAlloc"
     [[ "$first_mig_type" == "warm" ]] && diskalloc_header="Preflight"
+    
+    # Add "(Avg)" suffix if multiple VMs
+    local avg_suffix=""
+    [[ $max_vm_count -gt 1 ]] && avg_suffix=" (Avg)"
     
     cat > "$index_file" <<EOF
 <!DOCTYPE html>
@@ -3477,19 +3489,21 @@ generate_test_index() {
         <th>Date</th>
         <th>Status</th>
         <th>Duration</th>
-        <th class="breakdown-header">Init</th>
-        <th class="breakdown-header">${diskalloc_header}</th>
-        <th class="breakdown-header">ImgConv</th>
-        <th class="breakdown-header">DiskTransfer</th>
-        <th class="breakdown-header cutover-col">Cutover</th>
-        <th class="breakdown-header">VMCreate</th>
-        <th class="breakdown-header consol-col">Consol</th>
+        <th class="breakdown-header">VMs</th>
+        <th class="breakdown-header">Init${avg_suffix}</th>
+        <th class="breakdown-header">${diskalloc_header}${avg_suffix}</th>
+        <th class="breakdown-header">ImgConv${avg_suffix}</th>
+        <th class="breakdown-header">DiskTransfer${avg_suffix}</th>
+        <th class="breakdown-header cutover-col">Cutover${avg_suffix}</th>
+        <th class="breakdown-header">VMCreate${avg_suffix}</th>
+        <th class="breakdown-header consol-col">Consol${avg_suffix}</th>
         <th>Report</th>
     </tr>
 EOF
     
     local prev_init=0 prev_diskalloc=0 prev_imgconv=0 prev_transfer=0 prev_cutover=0 prev_vmcreate=0 prev_consol=0
     local has_warm_migration=false
+    local max_vm_count=0
     local num=0
     for info in "${cycle_info[@]}"; do
         ((num++))
@@ -3497,15 +3511,17 @@ EOF
         local status=$(echo "$info" | cut -d'|' -f2)
         local duration=$(echo "$info" | cut -d'|' -f3)
         local mig_type=$(echo "$info" | cut -d'|' -f4)
-        local init_sec=$(echo "$info" | cut -d'|' -f5)
-        local diskalloc_sec=$(echo "$info" | cut -d'|' -f6)
-        local imgconv_sec=$(echo "$info" | cut -d'|' -f7)
-        local transfer_sec=$(echo "$info" | cut -d'|' -f8)
-        local cutover_sec=$(echo "$info" | cut -d'|' -f9)
-        local vmcreate_sec=$(echo "$info" | cut -d'|' -f10)
-        local consol_sec=$(echo "$info" | cut -d'|' -f11)
+        local vm_count=$(echo "$info" | cut -d'|' -f5)
+        local init_sec=$(echo "$info" | cut -d'|' -f6)
+        local diskalloc_sec=$(echo "$info" | cut -d'|' -f7)
+        local imgconv_sec=$(echo "$info" | cut -d'|' -f8)
+        local transfer_sec=$(echo "$info" | cut -d'|' -f9)
+        local cutover_sec=$(echo "$info" | cut -d'|' -f10)
+        local vmcreate_sec=$(echo "$info" | cut -d'|' -f11)
+        local consol_sec=$(echo "$info" | cut -d'|' -f12)
         
         mig_type=${mig_type:-cold}
+        vm_count=${vm_count:-0}
         init_sec=${init_sec:-0}
         diskalloc_sec=${diskalloc_sec:-0}
         imgconv_sec=${imgconv_sec:-0}
@@ -3516,6 +3532,8 @@ EOF
         
         # Track if any cycle is warm (to show warm-only columns)
         [[ "$mig_type" == "warm" ]] && has_warm_migration=true
+        # Track max VM count for "(Avg)" indicator
+        [[ $vm_count -gt $max_vm_count ]] && max_vm_count=$vm_count
         
         local cycle_date="N/A"
         local timestamp=$(echo "$cycle_name" | grep -oE '[0-9]{8}-[0-9]{6}$')
@@ -3573,6 +3591,7 @@ EOF
         <td>${cycle_date}</td>
         <td class="${status_class}">${status}</td>
         <td>${duration}</td>
+        <td class="breakdown-col">${vm_count}</td>
         <td class="breakdown-col ${init_class}">${init_fmt}${init_arrow}</td>
         <td class="breakdown-col ${diskalloc_class}">${diskalloc_fmt}${diskalloc_arrow}</td>
         <td class="breakdown-col ${imgconv_class}">${imgconv_fmt}${imgconv_arrow}</td>
@@ -3591,8 +3610,13 @@ EOF
     local cold_style=""
     [[ "$has_warm_migration" != "true" ]] && cold_style=".cutover-col, .consol-col { display: none !important; }"
     
+    # Add note about averages if multiple VMs
+    local avg_note=""
+    [[ $max_vm_count -gt 1 ]] && avg_note="<p class=\"meta\" style=\"margin-top: 10px;\"><em>* Pipeline breakdown values are averages across all VMs in each cycle</em></p>"
+    
     cat >> "$index_file" <<EOF
 </table>
+${avg_note}
 <style>${cold_style}</style>
 
 <script>
