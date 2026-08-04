@@ -1425,6 +1425,15 @@ check_storage_offload() {
     fi
     echo -e "    ${CYAN}Note:${NC} Settings configured in ForkliftController CR"
     
+    # Check Max Populator Inflight setting from ForkliftController JSON
+    if [[ -n "$controller_file" && -f "$controller_file" ]]; then
+        local max_populator=$(jq -r '.spec.controller_max_populator_inflight // empty' "$controller_file" 2>/dev/null)
+        if [[ -n "$max_populator" && "$max_populator" != "null" ]]; then
+            echo -e "    Max Populator Pods: ${GREEN}$max_populator${NC}"
+            echo -e "    ${CYAN}Source:${NC} $(basename "$controller_file")"
+        fi
+    fi
+    
     # Check XCOPY status from Populate pod logs
     check_xcopy_status_from_populate_logs
     
