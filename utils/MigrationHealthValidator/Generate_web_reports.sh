@@ -267,7 +267,7 @@ async function comparePipelineBreakdown() {
         var version = cb.dataset.version;
         var tcname = cb.dataset.tcname;
         try {
-            var resp = await fetch("results-data/" + version + "/" + tcname + "/index.html");
+            var resp = await fetch("results-data/" + version + "/" + tcname + "/index.html?t=" + Date.now());
             if (resp.ok) {
                 var html = await resp.text();
                 var breakdown = extractBreakdownFromHTML(html, version);
@@ -291,13 +291,13 @@ function extractBreakdownFromHTML(html, version) {
     var headerNames = [];
     headers.forEach(function(h) { headerNames.push(h.textContent.trim().replace(" (Avg)", "")); });
     
-    var rows = doc.querySelectorAll("tbody tr");
+    var rows = doc.querySelectorAll("tbody tr"); if (rows.length === 0) rows = doc.querySelectorAll("table tr");
     var cycles = [];
     
     rows.forEach(function(row) {
         var cells = row.querySelectorAll("td");
         var breakdownCells = row.querySelectorAll("td.breakdown-col");
-        if (breakdownCells.length > 0) {
+        var statusCell = cells[3] ? cells[3].textContent.trim().toLowerCase() : ""; var durationCell = cells[4] ? cells[4].textContent.trim() : ""; if (breakdownCells.length > 0 && statusCell !== "unknown" && durationCell !== "N/A") {
             var cycleData = {
                 cycle: cells[0] ? cells[0].textContent.trim() : "",
                 date: cells[1] ? cells[1].textContent.trim() : "",
