@@ -220,8 +220,8 @@ if [[ -f "$TEMP_DIR/backups/index.html.full-featured-backup" ]]; then
         sed -i 's|<th>MTV Version</th>|<th style="width:30px;"><input type="checkbox" id="select-all-versions" onclick="toggleAllVersions()" title="Select All"></th><th>MTV Version</th>|' "$TEMP_DIR/index.html"
     fi
     
-    # 2. Add checkbox to row template in JavaScript
-    if ! grep -q 'version-checkbox' "$TEMP_DIR/index.html"; then
+    # 2. Add checkbox to row template in JavaScript (check specifically for row checkbox, not popup checkboxes)
+    if ! grep -q 'class="version-checkbox" data-version' "$TEMP_DIR/index.html"; then
         echo "  Adding checkbox to row template..."
         sed -i 's|<td><strong>\${d.version.replace(/-/g|<td><input type="checkbox" class="version-checkbox" data-version="\${d.version}" data-tcname="\${currentTCName}"></td><td><strong>\${d.version.replace(/-/g|' "$TEMP_DIR/index.html"
     fi
