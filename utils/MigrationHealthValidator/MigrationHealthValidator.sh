@@ -1413,10 +1413,17 @@ check_storage_offload() {
         echo "          ForkliftController config or forklift-controller pod logs not available"
         # Still check populator settings even when offload not found
         if [[ -n "$controller_file" && -f "$controller_file" ]]; then
-            local max_populator=$(jq -r '.spec.controller_max_populator_inflight // empty' "$controller_file" 2>/dev/null)
-            if [[ -n "$max_populator" && "$max_populator" != "null" ]]; then
+            local max_populator
+            max_populator=$(jq -r '.spec.controller_max_populator_inflight // empty' "$controller_file" 2>/dev/null)
+            local jq_ret=$?
+            if [[ $jq_ret -ne 0 ]]; then
+                echo -e "    ${YELLOW}[WARN]${NC} Failed to parse $(basename "$controller_file")"
+            elif [[ -n "$max_populator" && "$max_populator" != "null" ]]; then
                 echo -e "    controller_max_populator_inflight Patched: ${GREEN}True${NC}"
                 echo -e "    Max Populator Pods: ${GREEN}$max_populator${NC}"
+                echo -e "    ${CYAN}Source:${NC} $(basename "$controller_file")"
+            else
+                echo -e "    controller_max_populator_inflight: ${YELLOW}Not set (using default)${NC}"
             fi
         fi
         return
