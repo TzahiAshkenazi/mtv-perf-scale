@@ -303,7 +303,7 @@ function extractBreakdownFromHTML(html, version) {
                 date: cells[1] ? cells[1].textContent.trim() : "",
                 vms: breakdownCells[0] ? breakdownCells[0].textContent.trim() : "1"
             };
-            for (var i = 1; i < breakdownCells.length && i <= headerNames.length; i++) {
+            for (var i = 1; i < breakdownCells.length && i < headerNames.length; i++) {
                 var hdr = headerNames[i] || ("col" + i);
                 cycleData[hdr] = breakdownCells[i] ? breakdownCells[i].textContent.trim().replace(/[↑↓▲▼]/g, "").trim() : "N/A";
             }
@@ -451,12 +451,15 @@ PIPELINEJS
             if [[ "$vname" =~ ^([0-9]+)[.-]([0-9]+) ]]; then
                 major="${BASH_REMATCH[1]}"
                 minor="${BASH_REMATCH[2]}"
+            else
+                echo "    [WARN] Cannot parse major.minor from '$vname'; skipping card"
+                continue
             fi
             
             section_name="MTV ${major}.${minor}"
             
             # Check if section exists, if not create it
-            if ! grep -q "$section_name " "$TEMP_DIR/index.html"; then
+            if ! grep -qF "$section_name " "$TEMP_DIR/index.html"; then
                 echo "    Creating new section: $section_name"
                 # Insert new section before the first existing MTV section
                 awk -v section="$section_name" '
