@@ -413,7 +413,7 @@ function showPipelineCompareModal(results) {
     
     var legend = document.createElement("p");
     legend.style.cssText = "color:#666; font-size:14px; margin-top:15px;";
-    legend.innerHTML = '<span style="color:#4caf50; font-weight:bold;">▼ Faster</span> | <span style="color:#e94560; font-weight:bold;">▲ Slower</span> (compared to previous row). Values are averages across cycles.';
+    legend.innerHTML = '<span style="color:#4caf50; font-weight:bold;">▼ Faster</span> | <span style="color:#e94560; font-weight:bold;">▲ Slower</span> (compared to previous row, threshold: >10s). Values are averages across cycles.';
     content.appendChild(legend);
     
     modal.appendChild(content);
