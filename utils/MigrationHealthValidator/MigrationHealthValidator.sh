@@ -1411,6 +1411,21 @@ check_storage_offload() {
     if [[ "$copy_offload_enabled" == "not found" ]]; then
         echo -e "    ${YELLOW}[WARN]${NC} Storage offload settings not found in logs"
         echo "          ForkliftController config or forklift-controller pod logs not available"
+        # Still check populator settings even when offload not found
+        if [[ -n "$controller_file" && -f "$controller_file" ]]; then
+            local max_populator
+            max_populator=$(jq -r '.spec.controller_max_populator_inflight // empty' "$controller_file" 2>/dev/null)
+            local jq_ret=$?
+            if [[ $jq_ret -ne 0 ]]; then
+                echo -e "    ${YELLOW}[WARN]${NC} Failed to parse $(basename "$controller_file")"
+            elif [[ -n "$max_populator" && "$max_populator" != "null" ]]; then
+                echo -e "    controller_max_populator_inflight Patched: ${GREEN}True${NC}"
+                echo -e "    Max Populator Pods: ${GREEN}$max_populator${NC}"
+                echo -e "    ${CYAN}Source:${NC} $(basename "$controller_file")"
+            else
+                echo -e "    controller_max_populator_inflight: ${YELLOW}Not set (using default)${NC}"
+            fi
+        fi
         return
     fi
     
@@ -1424,6 +1439,18 @@ check_storage_offload() {
         echo -e "    FEATURE_COPY_OFFLOAD: ${YELLOW}$copy_offload_enabled${NC}"
     fi
     echo -e "    ${CYAN}Note:${NC} Settings configured in ForkliftController CR"
+    
+    # Check Max Populator Inflight setting from ForkliftController JSON
+    if [[ -n "$controller_file" && -f "$controller_file" ]]; then
+        local max_populator=$(jq -r '.spec.controller_max_populator_inflight // empty' "$controller_file" 2>/dev/null)
+        if [[ -n "$max_populator" && "$max_populator" != "null" ]]; then
+            echo -e "    controller_max_populator_inflight Patched: ${GREEN}True${NC}"
+            echo -e "    Max Populator Pods: ${GREEN}$max_populator${NC}"
+            echo -e "    ${CYAN}Source:${NC} $(basename "$controller_file")"
+        else
+            echo -e "    controller_max_populator_inflight: ${YELLOW}Not set (using default)${NC}"
+        fi
+    fi
     
     # Check XCOPY status from Populate pod logs
     check_xcopy_status_from_populate_logs
@@ -2973,6 +3000,61 @@ display_multi_cycle_summary() {
 # Web Report Generation
 #######################################
 
+# Extract pipeline step breakdown from Migration JSON
+# Returns: mig_type|vm_count|init|diskalloc_or_preflight|imgconv|transfer|cutover|vmcreate|consolidation (9 values)
+# mig_type is "warm" or "cold", vm_count is number of VMs, rest are avg durations in seconds
+extract_pipeline_breakdown() {
+    local migration_json_file="$1"
+    
+    if [[ ! -f "$migration_json_file" ]]; then
+        echo "cold|0|0|0|0|0|0|0|0"
+        return 1
+    fi
+    
+    local result=$(jq -r '
+    .status.vms as $vms |
+    ($vms | length) as $vm_count |
+    # Detect warm migration: if Cutover step exists with duration > 0, its warm
+    ([$vms[].pipeline[]? | select(.name == "Cutover") | select(.started != null and .completed != null)] | length > 0) as $is_warm |
+    (if $is_warm then "warm" else "cold" end) as $mig_type |
+    if $vm_count == 0 then
+        "cold|0|0|0|0|0|0|0|0"
+    else
+        def calc_avg(step_name):
+            [$vms[].pipeline[]? | select(.name == step_name) |
+                select(.started != null and .completed != null) |
+                (((.completed | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) // 0) -
+                 ((.started | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) // 0))
+            ] |
+            if length == 0 then 0
+            else (add / length | floor)
+            end;
+        
+        # DiskAlloc (cold) or PreflightInspection (warm)
+        (if calc_avg("DiskAllocation") > 0 then calc_avg("DiskAllocation") else calc_avg("PreflightInspection") end) as $col2 |
+        # DiskTransferV2v (cold) or DiskTransfer (warm)
+        (if calc_avg("DiskTransferV2v") > 0 then calc_avg("DiskTransferV2v") else calc_avg("DiskTransfer") end) as $col4 |
+        
+        "\($mig_type)|\($vm_count)|\(calc_avg("Initialize"))|\($col2)|\(calc_avg("ImageConversion"))|\($col4)|\(calc_avg("Cutover"))|\(calc_avg("VirtualMachineCreation"))|\(calc_avg("WaitForFinalSnapshotConsolidation"))"
+    end
+    ' "$migration_json_file" 2>/dev/null)
+    
+    echo "${result:-cold|0|0|0|0|0|0|0|0}"
+}
+
+# Format seconds to mm:ss or h:mm:ss
+format_duration_short() {
+    local secs="$1"
+    secs=${secs:-0}
+    if [[ "$secs" -eq 0 ]]; then
+        echo "N/A"
+    elif [[ "$secs" -ge 3600 ]]; then
+        printf '%d:%02d:%02d' $((secs/3600)) $((secs%3600/60)) $((secs%60))
+    else
+        printf '%d:%02d' $((secs/60)) $((secs%60))
+    fi
+}
+
 # Strip ANSI color codes from output
 strip_colors() {
     sed -e 's/\x1b\[[0-9;]*m//g' -e 's/\\033\[[0-9;]*m//g'
@@ -3239,7 +3321,8 @@ generate_web_reports() {
                         fi
                     fi
                 fi
-                cycle_info+=("${cycle_name}|${status}|${duration}")
+                local breakdown=$(extract_pipeline_breakdown "$migration_file")
+                cycle_info+=("${cycle_name}|${status}|${duration}|${breakdown}")
                 continue
             fi
             
@@ -3292,8 +3375,9 @@ generate_web_reports() {
             ((success++))
             ((cycle_success++))
             
-            # Store cycle info
-            cycle_info+=("${cycle_name}|${status}|${duration}")
+            # Store cycle info with pipeline breakdown
+            local breakdown=$(extract_pipeline_breakdown "$migration_file")
+            cycle_info+=("${cycle_name}|${status}|${duration}|${breakdown}")
             
         done <<< "$cycles"
         
@@ -3330,6 +3414,7 @@ generate_web_reports() {
 }
 
 # Generate index page for a single test with all its cycles
+# cycle_info format: "cycle_name|status|duration|init_sec|diskalloc_sec|imgconv_sec|transfer_sec|vmcreate_sec"
 generate_test_index() {
     local test_output="$1"
     local test_name="$2"
@@ -3337,6 +3422,22 @@ generate_test_index() {
     local cycle_info=("$@")
     
     local index_file="${test_output}/index.html"
+    
+    # Pre-scan cycles to detect migration type and max VM count
+    local first_mig_type=$(echo "${cycle_info[0]}" | cut -d'|' -f4)
+    local max_vm_count=0
+    for info in "${cycle_info[@]}"; do
+        local vc=$(echo "$info" | cut -d'|' -f5)
+        [[ ${vc:-0} -gt $max_vm_count ]] && max_vm_count=${vc:-0}
+    done
+    
+    # Set column headers based on migration type and VM count
+    local diskalloc_header="DiskAlloc"
+    [[ "$first_mig_type" == "warm" ]] && diskalloc_header="Preflight"
+    
+    # Add "(Avg)" suffix if multiple VMs
+    local avg_suffix=""
+    [[ $max_vm_count -gt 1 ]] && avg_suffix=" (Avg)"
     
     cat > "$index_file" <<EOF
 <!DOCTYPE html>
@@ -3350,13 +3451,13 @@ generate_test_index() {
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            max-width: 1200px;
+            max-width: 1800px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
         }
         h1 { color: #333; border-bottom: 2px solid #007acc; padding-bottom: 10px; }
-        .back-link { margin-bottom: 20px; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .back-link a {
             display: inline-block;
             padding: 10px 20px;
@@ -3387,13 +3488,26 @@ generate_test_index() {
         .btn:hover { background-color: #005a9e; text-decoration: none; }
         .btn-report { background-color: #28a745; }
         .btn-report:hover { background-color: #1e7e34; }
-        .meta { color: #666; font-size: 14px; margin-bottom: 20px; }
+.btn-toggle { background-color: #fd7e14; color: white; cursor: pointer; border: none; border-radius: 20px; padding: 8px 18px; font-size: 14px; }
+            .btn-toggle:hover { background-color: #e96b02; }
+        .meta { color: #666; font-size: 14px; }
+        .breakdown-col { display: none; text-align: center; }
+        .breakdown-col.show { display: table-cell; text-align: center; }
+        .breakdown-header { display: none; }
+        .breakdown-header.show { display: table-cell; }
+        .degraded { color: #dc3545; font-weight: bold; }
+        .improved { color: #28a745; font-weight: bold; }
+        td { white-space: nowrap; }
+        .cold-hide { display: none !important; }
     </style>
 </head>
 <body>
 <p class="back-link"><a href="../index.html?t=$(date +%s)">&larr; Back to Version Index</a></p>
 <h1>${test_name}</h1>
-<p class="meta"><strong>Total Cycles:</strong> ${#cycle_info[@]}</p>
+<div class="header-row">
+    <p class="meta"><strong>Total Cycles:</strong> ${#cycle_info[@]}</p>
+    <button class="btn btn-toggle" onclick="toggleBreakdown()">📊 Show Pipeline Breakdown</button>
+</div>
 
 <table>
     <tr>
@@ -3402,18 +3516,52 @@ generate_test_index() {
         <th>Date</th>
         <th>Status</th>
         <th>Duration</th>
+        <th class="breakdown-header">VMs</th>
+        <th class="breakdown-header">Init${avg_suffix}</th>
+        <th class="breakdown-header">${diskalloc_header}${avg_suffix}</th>
+        <th class="breakdown-header">ImgConv${avg_suffix}</th>
+        <th class="breakdown-header">DiskTransfer${avg_suffix}</th>
+        <th class="breakdown-header cutover-col">Cutover${avg_suffix}</th>
+        <th class="breakdown-header">VMCreate${avg_suffix}</th>
+        <th class="breakdown-header consol-col">Consol${avg_suffix}</th>
         <th>Report</th>
     </tr>
 EOF
     
+    local prev_init=0 prev_diskalloc=0 prev_imgconv=0 prev_transfer=0 prev_cutover=0 prev_vmcreate=0 prev_consol=0
+    local has_warm_migration=false
+    local max_vm_count=0
     local num=0
     for info in "${cycle_info[@]}"; do
         ((num++))
         local cycle_name=$(echo "$info" | cut -d'|' -f1)
         local status=$(echo "$info" | cut -d'|' -f2)
         local duration=$(echo "$info" | cut -d'|' -f3)
+        local mig_type=$(echo "$info" | cut -d'|' -f4)
+        local vm_count=$(echo "$info" | cut -d'|' -f5)
+        local init_sec=$(echo "$info" | cut -d'|' -f6)
+        local diskalloc_sec=$(echo "$info" | cut -d'|' -f7)
+        local imgconv_sec=$(echo "$info" | cut -d'|' -f8)
+        local transfer_sec=$(echo "$info" | cut -d'|' -f9)
+        local cutover_sec=$(echo "$info" | cut -d'|' -f10)
+        local vmcreate_sec=$(echo "$info" | cut -d'|' -f11)
+        local consol_sec=$(echo "$info" | cut -d'|' -f12)
         
-        # Extract date from cycle name (format: YYYYMMDD-HHMMSS -> dd-mm-yyyy HH:MM)
+        mig_type=${mig_type:-cold}
+        vm_count=${vm_count:-0}
+        init_sec=${init_sec:-0}
+        diskalloc_sec=${diskalloc_sec:-0}
+        imgconv_sec=${imgconv_sec:-0}
+        transfer_sec=${transfer_sec:-0}
+        cutover_sec=${cutover_sec:-0}
+        vmcreate_sec=${vmcreate_sec:-0}
+        consol_sec=${consol_sec:-0}
+        
+        # Track if any cycle is warm (to show warm-only columns)
+        [[ "$mig_type" == "warm" ]] && has_warm_migration=true
+        # Track max VM count for "(Avg)" indicator
+        [[ $vm_count -gt $max_vm_count ]] && max_vm_count=$vm_count
+        
         local cycle_date="N/A"
         local timestamp=$(echo "$cycle_name" | grep -oE '[0-9]{8}-[0-9]{6}$')
         if [[ -n "$timestamp" ]]; then
@@ -3428,6 +3576,41 @@ EOF
         local status_class="status-pass"
         [[ "$status" == "Failed" ]] && status_class="status-fail"
         
+        local init_fmt=$(format_duration_short "$init_sec")
+        local diskalloc_fmt=$(format_duration_short "$diskalloc_sec")
+        local imgconv_fmt=$(format_duration_short "$imgconv_sec")
+        local transfer_fmt=$(format_duration_short "$transfer_sec")
+        local cutover_fmt=$(format_duration_short "$cutover_sec")
+        local vmcreate_fmt=$(format_duration_short "$vmcreate_sec")
+        local consol_fmt=$(format_duration_short "$consol_sec")
+        
+        local init_class="" diskalloc_class="" imgconv_class="" transfer_class="" cutover_class="" vmcreate_class="" consol_class=""
+        local init_arrow="" diskalloc_arrow="" imgconv_arrow="" transfer_arrow="" cutover_arrow="" vmcreate_arrow="" consol_arrow=""
+        if [[ $num -gt 1 ]]; then
+            if [[ $init_sec -gt $((prev_init + 10)) ]]; then init_class="degraded"; init_arrow=" ↑"; fi
+            if [[ $init_sec -lt $((prev_init - 10)) ]]; then init_class="improved"; init_arrow=" ↓"; fi
+            if [[ $diskalloc_sec -gt $((prev_diskalloc + 10)) ]]; then diskalloc_class="degraded"; diskalloc_arrow=" ↑"; fi
+            if [[ $diskalloc_sec -lt $((prev_diskalloc - 10)) ]]; then diskalloc_class="improved"; diskalloc_arrow=" ↓"; fi
+            if [[ $imgconv_sec -gt $((prev_imgconv + 10)) ]]; then imgconv_class="degraded"; imgconv_arrow=" ↑"; fi
+            if [[ $imgconv_sec -lt $((prev_imgconv - 10)) ]]; then imgconv_class="improved"; imgconv_arrow=" ↓"; fi
+            if [[ $transfer_sec -gt $((prev_transfer + 10)) ]]; then transfer_class="degraded"; transfer_arrow=" ↑"; fi
+            if [[ $transfer_sec -lt $((prev_transfer - 10)) ]]; then transfer_class="improved"; transfer_arrow=" ↓"; fi
+            if [[ $cutover_sec -gt $((prev_cutover + 10)) ]]; then cutover_class="degraded"; cutover_arrow=" ↑"; fi
+            if [[ $cutover_sec -lt $((prev_cutover - 10)) ]]; then cutover_class="improved"; cutover_arrow=" ↓"; fi
+            if [[ $vmcreate_sec -gt $((prev_vmcreate + 10)) ]]; then vmcreate_class="degraded"; vmcreate_arrow=" ↑"; fi
+            if [[ $vmcreate_sec -lt $((prev_vmcreate - 10)) ]]; then vmcreate_class="improved"; vmcreate_arrow=" ↓"; fi
+            if [[ $consol_sec -gt $((prev_consol + 10)) ]]; then consol_class="degraded"; consol_arrow=" ↑"; fi
+            if [[ $consol_sec -lt $((prev_consol - 10)) ]]; then consol_class="improved"; consol_arrow=" ↓"; fi
+        fi
+        
+        prev_init=$init_sec
+        prev_diskalloc=$diskalloc_sec
+        prev_imgconv=$imgconv_sec
+        prev_transfer=$transfer_sec
+        prev_cutover=$cutover_sec
+        prev_vmcreate=$vmcreate_sec
+        prev_consol=$consol_sec
+        
         cat >> "$index_file" <<EOF
     <tr>
         <td>${num}</td>
@@ -3435,6 +3618,14 @@ EOF
         <td>${cycle_date}</td>
         <td class="${status_class}">${status}</td>
         <td>${duration}</td>
+        <td class="breakdown-col">${vm_count}</td>
+        <td class="breakdown-col ${init_class}">${init_fmt}${init_arrow}</td>
+        <td class="breakdown-col ${diskalloc_class}">${diskalloc_fmt}${diskalloc_arrow}</td>
+        <td class="breakdown-col ${imgconv_class}">${imgconv_fmt}${imgconv_arrow}</td>
+        <td class="breakdown-col ${transfer_class}">${transfer_fmt}${transfer_arrow}</td>
+        <td class="breakdown-col cutover-col ${cutover_class}">${cutover_fmt}${cutover_arrow}</td>
+        <td class="breakdown-col ${vmcreate_class}">${vmcreate_fmt}${vmcreate_arrow}</td>
+        <td class="breakdown-col consol-col ${consol_class}">${consol_fmt}${consol_arrow}</td>
         <td>
             <a href="${cycle_name}/health_report.html?t=$(date +%s)" class="btn btn-report">View Report</a>
         </td>
@@ -3442,8 +3633,52 @@ EOF
 EOF
     done
     
+    # Add style to hide cutover/consol columns for cold migrations (only if no warm migrations)
+    local cold_style=""
+    [[ "$has_warm_migration" != "true" ]] && cold_style=".cutover-col, .consol-col { display: none !important; }"
+    
+    # Add note about averages if multiple VMs
+    local avg_note=""
+    [[ $max_vm_count -gt 1 ]] && avg_note="<p class=\"meta\" style=\"margin-top: 10px;\"><em>* Pipeline breakdown values are averages across all VMs in each cycle</em></p>"
+    
     cat >> "$index_file" <<EOF
 </table>
+${avg_note}
+<style>${cold_style}</style>
+
+<script>
+function toggleBreakdown() {
+    var cols = document.querySelectorAll('.breakdown-col, .breakdown-header');
+    var btn = document.querySelector('.btn-toggle');
+    var isHidden = !cols[0].classList.contains('show');
+    
+    for (var i = 0; i < cols.length; i++) {
+        if (isHidden) {
+            cols[i].classList.add('show');
+        } else {
+            cols[i].classList.remove('show');
+        }
+    }
+    
+    btn.textContent = isHidden ? '📊 Hide Pipeline Breakdown' : '📊 Show Pipeline Breakdown';
+}
+EOF
+
+    # Add JavaScript to hide Cutover/Consol columns for cold migrations (only if no warm)
+    if [[ "$has_warm_migration" != "true" ]]; then
+        cat >> "$index_file" <<'EOF'
+// Hide Cutover and Consol columns for cold migrations
+document.addEventListener('DOMContentLoaded', function() {
+    var coldCols = document.querySelectorAll('.cutover-col, .consol-col');
+    for (var i = 0; i < coldCols.length; i++) {
+        coldCols[i].classList.add('cold-hide');
+    }
+});
+EOF
+    fi
+
+    cat >> "$index_file" <<'EOF'
+</script>
 </body>
 </html>
 EOF
@@ -3559,6 +3794,7 @@ EOF
     
     cat >> "$index_file" <<EOF
 </table>
+<style>${cold_style}</style>
 </body>
 </html>
 EOF

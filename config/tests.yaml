@@ -691,7 +691,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-20usage-10disks-offload-iscsi-vm   # VMsPrefix
   total_vms: 5    # total_vms
   MigrationType: cold
-  controller_max_populator_inflight: 5
+  controller_max_populator_inflight: 1
   StorageOffload: true
   PlanMigrationName: 5vm-10disks-ibm-50gb-usage-offload-cold-iscsi-tc9-2
   TargetMigrationNS: 5vm-10disks-ibm-50gb-usage-offload-cold-iscsi-tc9-2
@@ -710,7 +710,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-20usage-2disks-offload-iscsi-vm   # VMsPrefix
   total_vms: 50   # total_vms
   MigrationType: cold
-  controller_max_populator_inflight: 2
+  controller_max_populator_inflight: 1
   StorageOffload: true
   PlanMigrationName: 50vm-2disk-ibm-50gb-usage-offload-cold-iscsi-tc9-3
   TargetMigrationNS: 50vm-2disk-ibm-50gb-usage-offload-cold-iscsi-tc9-3
