@@ -84,6 +84,35 @@ The script will:
 
 Reports are saved to `/home/$USER/MTV/results/<MigrationCRname>/logs/`
 
+### Results Archiving (MinIO/S3)
+
+After each migration's report is generated, `utils/report_etl.sh` invokes `utils/report_parser.py`, which mirrors the entire per-run log directory into a MinIO/S3 bucket. Every file under the log directory is uploaded individually, preserving its on-disk path, so the object keys in the bucket exactly match the local `results/...` tree.
+
+For example, the local directory:
+
+```text
+/home/kni/MTV/results/5-0-0-8/1vm-1disk-1tb-820usage-cold-tc2-4/logs/1vm-1disk-1tb-820usage-cold-tc2-4_20260808-142034/
+```
+
+is uploaded as:
+
+```text
+s3://mtv-bucket/results/5-0-0-8/1vm-1disk-1tb-820usage-cold-tc2-4/logs/1vm-1disk-1tb-820usage-cold-tc2-4_20260808-142034/...
+```
+
+with every file (STDOUT/flow logs, `MTV_*.log`/`.txt` pod logs, `VirtV2V_*` logs, `Plan_*`/`Migration_*`/`Provider_*` JSON, `MigrationBreakdown_*.txt`, `METRICS/`, etc.) uploaded as a separate object at the matching relative path.
+
+Configure the destination via environment variables (typically injected through `bws run` / `run-with-secrets.sh`, see [`run-with-secrets.sh`](run-with-secrets.sh)):
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `MINIO_ENDPOINT_URL` | MinIO/S3 endpoint URL | `http://minio.example.com:9000` |
+| `MINIO_ACCESS_KEY` | Access key | _(none)_ |
+| `MINIO_SECRET_KEY` | Secret key | _(none)_ |
+| `MTV_MINIO_BUCKET_NAME` | Target bucket name | `mtv-bucket` |
+
+The upload happens in `upload_logs_to_s3()` in [`utils/report_parser.py`](utils/report_parser.py); the S3 key prefix is derived from the local path by `compute_s3_key_prefix()`, which keeps everything from `results/` onward.
+
 ### Currently Not Supported - Gotchas
 
 To do

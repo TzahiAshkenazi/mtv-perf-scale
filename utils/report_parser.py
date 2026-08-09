@@ -2,12 +2,10 @@ import argparse
 import json
 import os
 import boto3
-import shutil
 import requests
 import re
 import uuid
 from datetime import datetime
-from pathlib import Path
 
 """
 This Python script performs the following steps:
@@ -18,11 +16,11 @@ This Python script performs the following steps:
 5. Adjust datafields to elastic friendly format for timedate and secs
 5. Writes the combined JSON to an output file.
 6. Uploads the combined JSON to an Elasticsearch index.
-7. Compresses and archives all files in log_dir and uploads the archive to a MinIO S3 bucket.
+7. Mirrors all files in log_dir to a MinIO S3 bucket, preserving the on-disk
+   directory structure (starting at 'results/') as the object key prefix.
 """
 
 # # Configuration variables (adjust as needed)
-scenario_name = ''
 metadata_path_dir = ''
 output_json_path = ''
 test_result_path = ''
@@ -51,24 +49,30 @@ def extract_value(line: str, key: str) -> str:
     except IndexError:
         return ""
 
-def parse_folder_name_from_path(path: str) -> str:
-    """Extracts the folder name immediately after 'results/' in the path."""
-    match = re.search(r"results/([^/]+)/", path)
+def compute_s3_key_prefix(log_directory: str) -> str:
+    """Builds an S3 key prefix that mirrors the on-disk results path.
+
+    e.g. '/home/kni/MTV/results/5-0-0-8/1vm-1disk-1tb-820usage-cold-tc2-4/logs/
+    1vm-1disk-1tb-820usage-cold-tc2-4_20260808-142034' ->
+    'results/5-0-0-8/1vm-1disk-1tb-820usage-cold-tc2-4/logs/
+    1vm-1disk-1tb-820usage-cold-tc2-4_20260808-142034'
+    """
+    match = re.search(r"(results/.+)$", log_directory.rstrip("/"))
     if match:
         return match.group(1)
-    return ""
+    # Fallback: never upload directly to the bucket root.
+    return os.path.basename(log_directory.rstrip("/"))
 
 def parse_result_path(path: str) -> tuple[str, str, str, str]:
     # Configuration variables (adjust as needed)
     # test_result_path = "/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651/MigrationBreakdown_mtv280-5vms-dsl-cold_20250305-122713.txt"  # Path to your test result TXT file
     # metadata_path_dir = "/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651/.report-artifacts/"   # Directory containing multiple JSON files
     # output_json_path = "/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651/combine_report.json"  # Where to write the final combined JSON
-    import os
     test_result_path_folder = os.path.dirname(path)
-    scenario_name = parse_folder_name_from_path(path)
+    s3_key_prefix = compute_s3_key_prefix(test_result_path_folder)
     metadata_path_dir = test_result_path_folder + '/.report-artifacts/'   # Directory containing multiple JSON files
     output_json_path = test_result_path_folder + '/.combine_report.json'  # Where to write the final combined JSON
-    return test_result_path_folder, scenario_name, metadata_path_dir, output_json_path
+    return test_result_path_folder, s3_key_prefix, metadata_path_dir, output_json_path
 
  
 def parse_test_results(path: str) -> dict:
@@ -226,16 +230,11 @@ def upload_to_elasticsearch(es_host: str, es_index: str, doc_id: str | None, doc
         print(f"Failed to upload document: {e}")
 
 
-def archive_and_upload_logs(log_directory: str, bucket_name: str, object_name: str,
-                             endpoint_url: str, access_key: str, secret_key: str):
-    """Compresses all files in 'log_directory' into a .tar.gz archive and uploads to S3 (MinIO)."""
-    # Create an archive from the log_directory
-    archive_name = object_name
-    shutil.make_archive(archive_name, "gztar", log_directory)
-    archive_file = archive_name + ".tar.gz"
-    archive_path = Path(f"{archive_name}.tar.gz")
-
-    # Upload the archive to S3 (MinIO) using boto3
+def upload_logs_to_s3(log_directory: str, bucket_name: str, key_prefix: str,
+                       endpoint_url: str, access_key: str, secret_key: str) -> str:
+    """Uploads every file under 'log_directory' to S3 (MinIO), preserving the
+    directory's relative structure under 'key_prefix' so the bucket layout
+    mirrors the on-disk results tree file-for-file."""
     s3_client = boto3.client(
         "s3",
         endpoint_url=endpoint_url,
@@ -243,14 +242,26 @@ def archive_and_upload_logs(log_directory: str, bucket_name: str, object_name: s
         aws_secret_access_key=secret_key
     )
 
-    s3_path = f"s3://{bucket_name}/{object_name}"
-    try:
-        s3_client.upload_file(archive_file, bucket_name, object_name)
-        print(f"Successfully uploaded '{archive_file}' to 's3://{bucket_name}/{object_name}'")
-        archive_path.unlink()
+    s3_path = f"s3://{bucket_name}/{key_prefix}/"
+    uploaded = 0
+    failed = 0
+    for root, _dirs, files in os.walk(log_directory):
+        for filename in files:
+            file_path = os.path.join(root, filename)
+            rel_path = os.path.relpath(file_path, log_directory)
+            key = f"{key_prefix}/{rel_path}"
+            try:
+                s3_client.upload_file(file_path, bucket_name, key)
+                uploaded += 1
+            except Exception as e:
+                failed += 1
+                print(f"[!] Failed to upload '{file_path}' to 's3://{bucket_name}/{key}': {e}")
 
-    except Exception as e:
-        print(f"Failed to upload archive to S3: {e}")
+    if uploaded:
+        suffix = f" ({failed} failed)" if failed else ""
+        print(f"Successfully uploaded {uploaded} files to '{s3_path}'{suffix}")
+    else:
+        print(f"Failed to upload any files to '{s3_path}'")
     return s3_path
 
 def hms_to_seconds(time_str: str) -> int:
@@ -360,7 +371,9 @@ def main():
     parser.add_argument("--test-result-path", required=True, help="Path to the test result .txt file.")
     args = parser.parse_args()
 
-    test_result_path_folder, scenario_name, metadata_path_dir, output_json_path = parse_result_path(args.test_result_path)
+    test_result_path_folder, s3_key_prefix, metadata_path_dir, output_json_path = parse_result_path(
+        args.test_result_path
+    )
    
     # 1. Parse test results => returns a dict with a top-level key 'test_metadata'
     results_data = parse_test_results(args.test_result_path)
@@ -374,11 +387,11 @@ def main():
     # 3. Calculate utilized_throughput
     calculate_utilized_throughput(results_data["test_metadata"])
 
-    # # 4. Archive and upload logs to MinIO/S3
-    s3_path = archive_and_upload_logs(
+    # 4. Mirror the results directory to MinIO/S3, preserving its on-disk structure
+    s3_path = upload_logs_to_s3(
         log_directory=test_result_path_folder,
         bucket_name=MINIO_BUCKET_NAME,
-        object_name=scenario_name,
+        key_prefix=s3_key_prefix,
         endpoint_url=MINIO_ENDPOINT_URL,
         access_key=MINIO_ACCESS_KEY,
         secret_key=MINIO_SECRET_KEY
