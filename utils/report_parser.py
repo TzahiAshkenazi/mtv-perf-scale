@@ -452,6 +452,13 @@ def main():
         s3_path = e.s3_path
         s3_archive_status = "incomplete"
 
+    # Whether the actual result files themselves were mirrored is what gates
+    # Elasticsearch publication below. Captured separately from
+    # s3_archive_status because that field may still be downgraded later
+    # (5a) if only the summary report's own upload fails -- that shouldn't
+    # block publishing results that otherwise reference real archived data.
+    result_files_archived = s3_archive_status == "complete"
+
     # Save S3 path/status in the results_data before writing/ES upload
     results_data["test_metadata"]["s3_archive_path"] = s3_path
     results_data["test_metadata"]["s3_archive_status"] = s3_archive_status
@@ -489,9 +496,21 @@ def main():
         print(f"[i] Combined report archived to: {combine_report_s3_path}")
     except Exception as e:
         print(f"[!] Failed to archive combined report to S3: {e}")
+        # The archive is no longer fully complete now that its own summary
+        # file failed to upload. Downgrade the status and re-write the local
+        # report (already written above) so it doesn't lie about it. This
+        # alone doesn't block Elasticsearch publication below -- the actual
+        # result data was still mirrored successfully in step 4, so it's
+        # still worth publishing, just flagged as an incomplete archive.
+        results_data["s3_archive_status"] = "incomplete"
+        with open(output_json_path, "w") as file:
+            json.dump(results_data, file, indent=4)
 
-    # Don't publish results referencing an incomplete/missing archive.
-    if s3_archive_status != "complete":
+    # Don't publish results referencing an incomplete/missing archive of the
+    # actual result files (step 4). A failure to also archive the summary
+    # report itself (5a) doesn't block publication -- it's reflected in
+    # s3_archive_status above instead.
+    if not result_files_archived:
         print("[!] Skipping Elasticsearch publication because the S3 archive is incomplete.")
         sys.exit(1)
 
