@@ -15,10 +15,16 @@ This Python script performs the following steps:
 3. Reads all JSON files in a specified metadata_path_dir and combines them.
 4. Combines data into a single JSON document.
 5. Adjust datafields to elastic friendly format for timedate and secs
-5. Writes the combined JSON to an output file.
-6. Uploads the combined JSON to an Elasticsearch index.
-7. Mirrors all files in log_dir to a MinIO S3 bucket, preserving the on-disk
-   directory structure (starting at 'results/') as the object key prefix.
+6. Mirrors all pre-existing files in log_dir to a MinIO S3 bucket, preserving
+   the on-disk directory structure (starting at 'results/') as the object
+   key prefix.
+7. Writes the combined JSON to a local output file (.combine_report.json),
+   embedding its own future Elasticsearch document id/url so the file is
+   self-referential.
+8. Archives that same combined JSON file to S3 too (it didn't exist yet
+   during step 6's mirror).
+9. Uploads the combined JSON to Elasticsearch using that same document id,
+   and prints the URL where it can be retrieved.
 """
 
 # # Configuration variables (adjust as needed)
@@ -32,7 +38,6 @@ result ={
 # Elasticsearch config (values injected via bws run or environment variables)
 ES_HOST = os.environ.get("ES_URL", "http://elasticsearch.example.com:9200")
 ES_INDEX = os.environ.get("ES_INDEX", "mtv")
-ES_DOC_ID = None
 
 # MinIO/S3 config (values injected via bws run or environment variables)
 MINIO_ENDPOINT_URL = os.environ.get("MINIO_ENDPOINT_URL", "http://minio.example.com:9000")
@@ -218,17 +223,26 @@ def calculate_utilized_throughput(test_metadata: dict):
     test_metadata["migration"]["utilized_throughput"] = throughput
 
 
-def upload_to_elasticsearch(es_host: str, es_index: str, doc_id: str | None, doc: dict):
-    """Uploads a document to Elasticsearch using an HTTP POST/PUT request."""
+def upload_to_elasticsearch(es_host: str, es_index: str, doc_id: str | None, doc: dict) -> str | None:
+    """Uploads a document to Elasticsearch using an HTTP POST/PUT request.
+
+    Returns the direct URL where the uploaded document can be retrieved
+    (e.g. via GET), or None if the upload failed.
+    """
     url = f"{es_host}/{es_index}/_doc"
     if doc_id:
         url += f"/{doc_id}"
     try:
         response = requests.post(url, json=doc)
         response.raise_for_status()
-        print(f"Successfully uploaded document to Elasticsearch index '{es_index}'")
+        stored_id = response.json().get("_id", doc_id)
+        doc_url = f"{es_host}/{es_index}/_doc/{stored_id}"
+        print(f"Successfully uploaded document to Elasticsearch index '{es_index}' (doc _id={stored_id})")
+        print(f"Document accessible at: {doc_url}")
+        return doc_url
     except requests.exceptions.RequestException as e:
         print(f"Failed to upload document: {e}")
+        return None
 
 
 class S3ArchiveIncompleteError(Exception):
@@ -284,6 +298,20 @@ def upload_logs_to_s3(log_directory: str, bucket_name: str, key_prefix: str,
     if failed:
         raise S3ArchiveIncompleteError(s3_path, uploaded, failed)
     return s3_path
+
+
+def upload_file_to_s3(file_path: str, bucket_name: str, key: str,
+                       endpoint_url: str, access_key: str, secret_key: str) -> str:
+    """Uploads a single file to S3 (MinIO) at the given key. Returns the s3:// URI."""
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key
+    )
+    s3_client.upload_file(file_path, bucket_name, key)
+    return f"s3://{bucket_name}/{key}"
+
 
 def hms_to_seconds(time_str: str) -> int:
     """Converts a time string in HH:MM:SS format to total seconds."""
@@ -431,9 +459,36 @@ def main():
     # Update relevant fields to match Elastic field types 
     results_data = modify_report_for_elastic(results_data['test_metadata'])
 
+    # Use the already-generated result_id as a deterministic Elasticsearch
+    # document ID so it can be embedded in the report itself and referenced
+    # before the upload even happens (rather than relying on an ES-assigned
+    # ID that's never surfaced anywhere).
+    doc_id = results_data.get("result_id")
+    es_doc_url = f"{ES_HOST}/{ES_INDEX}/_doc/{doc_id}"
+    results_data["es_doc_id"] = doc_id
+    results_data["es_doc_url"] = es_doc_url
+
     # 5. Write combined JSON to file (kept locally even on incomplete archive, for debugging)
     with open(output_json_path, "w") as file:
         json.dump(results_data, file, indent=4)
+    print(f"[i] Combined report written locally to: {output_json_path}")
+
+    # 5a. Archive the combined report itself to S3 too. This has to happen
+    # after the write above and after the directory-wide mirror in step 4,
+    # since the file didn't exist on disk yet when that mirror ran.
+    combine_report_key = f"{s3_key_prefix}/{os.path.basename(output_json_path)}"
+    try:
+        combine_report_s3_path = upload_file_to_s3(
+            file_path=output_json_path,
+            bucket_name=MINIO_BUCKET_NAME,
+            key=combine_report_key,
+            endpoint_url=MINIO_ENDPOINT_URL,
+            access_key=MINIO_ACCESS_KEY,
+            secret_key=MINIO_SECRET_KEY
+        )
+        print(f"[i] Combined report archived to: {combine_report_s3_path}")
+    except Exception as e:
+        print(f"[!] Failed to archive combined report to S3: {e}")
 
     # Don't publish results referencing an incomplete/missing archive.
     if s3_archive_status != "complete":
@@ -444,7 +499,7 @@ def main():
     upload_to_elasticsearch(
         es_host=ES_HOST,
         es_index=ES_INDEX,
-        doc_id=ES_DOC_ID,
+        doc_id=doc_id,
         doc=results_data
     )
 if __name__ == "__main__":
