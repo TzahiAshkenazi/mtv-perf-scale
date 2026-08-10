@@ -99,7 +99,7 @@ class UploadLogsToS3Tests(unittest.TestCase):
             mock_s3_client.upload_file.assert_has_calls(expected_calls, any_order=True)
             self.assertEqual(mock_s3_client.upload_file.call_count, 3)
 
-    def test_continues_uploading_after_a_single_file_failure(self):
+    def test_raises_on_partial_upload_failure(self):
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -109,24 +109,29 @@ class UploadLogsToS3Tests(unittest.TestCase):
             mock_s3_client = MagicMock()
             mock_s3_client.upload_file.side_effect = [None, Exception("boom")]
 
+            key_prefix = "results/5-0-0-8/dsl-4-small/logs/dsl-4-small_20250531-233720"
             captured = io.StringIO()
             with patch.object(report_parser.boto3, "client", return_value=mock_s3_client):
                 with redirect_stdout(captured):
-                    report_parser.upload_logs_to_s3(
-                        log_directory=tmp_dir,
-                        bucket_name="mtv-bucket",
-                        key_prefix="results/5-0-0-8/dsl-4-small/logs/dsl-4-small_20250531-233720",
-                        endpoint_url="http://minio.example.com:9000",
-                        access_key="key",
-                        secret_key="secret",
-                    )
+                    with self.assertRaises(report_parser.S3ArchiveIncompleteError) as ctx:
+                        report_parser.upload_logs_to_s3(
+                            log_directory=tmp_dir,
+                            bucket_name="mtv-bucket",
+                            key_prefix=key_prefix,
+                            endpoint_url="http://minio.example.com:9000",
+                            access_key="key",
+                            secret_key="secret",
+                        )
 
             self.assertEqual(mock_s3_client.upload_file.call_count, 2)
+            self.assertEqual(ctx.exception.uploaded, 1)
+            self.assertEqual(ctx.exception.failed, 1)
+            self.assertEqual(ctx.exception.s3_path, f"s3://mtv-bucket/{key_prefix}/")
             output = captured.getvalue()
             self.assertIn("Successfully uploaded 1 files", output)
             self.assertIn("1 failed", output)
 
-    def test_reports_failure_when_no_files_uploaded(self):
+    def test_raises_on_total_upload_failure(self):
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -135,18 +140,23 @@ class UploadLogsToS3Tests(unittest.TestCase):
             mock_s3_client = MagicMock()
             mock_s3_client.upload_file.side_effect = Exception("boom")
 
+            key_prefix = "results/5-0-0-8/dsl-4-small/logs/dsl-4-small_20250531-233720"
             captured = io.StringIO()
             with patch.object(report_parser.boto3, "client", return_value=mock_s3_client):
                 with redirect_stdout(captured):
-                    report_parser.upload_logs_to_s3(
-                        log_directory=tmp_dir,
-                        bucket_name="mtv-bucket",
-                        key_prefix="results/5-0-0-8/dsl-4-small/logs/dsl-4-small_20250531-233720",
-                        endpoint_url="http://minio.example.com:9000",
-                        access_key="key",
-                        secret_key="secret",
-                    )
+                    with self.assertRaises(report_parser.S3ArchiveIncompleteError) as ctx:
+                        report_parser.upload_logs_to_s3(
+                            log_directory=tmp_dir,
+                            bucket_name="mtv-bucket",
+                            key_prefix=key_prefix,
+                            endpoint_url="http://minio.example.com:9000",
+                            access_key="key",
+                            secret_key="secret",
+                        )
 
+            self.assertEqual(ctx.exception.uploaded, 0)
+            self.assertEqual(ctx.exception.failed, 1)
+            self.assertEqual(ctx.exception.s3_path, f"s3://mtv-bucket/{key_prefix}/")
             output = captured.getvalue()
             self.assertNotIn("Successfully uploaded", output)
             self.assertIn("Failed to upload any files", output)

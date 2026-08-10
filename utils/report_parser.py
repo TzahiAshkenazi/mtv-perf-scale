@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import sys
 import boto3
 import requests
 import re
@@ -230,11 +231,28 @@ def upload_to_elasticsearch(es_host: str, es_index: str, doc_id: str | None, doc
         print(f"Failed to upload document: {e}")
 
 
+class S3ArchiveIncompleteError(Exception):
+    """Raised when one or more files failed to upload to S3, so the archive
+    for this run is partially or entirely missing."""
+
+    def __init__(self, s3_path: str, uploaded: int, failed: int):
+        self.s3_path = s3_path
+        self.uploaded = uploaded
+        self.failed = failed
+        super().__init__(
+            f"S3 archive incomplete under '{s3_path}': {uploaded} uploaded, {failed} failed"
+        )
+
+
 def upload_logs_to_s3(log_directory: str, bucket_name: str, key_prefix: str,
                        endpoint_url: str, access_key: str, secret_key: str) -> str:
     """Uploads every file under 'log_directory' to S3 (MinIO), preserving the
     directory's relative structure under 'key_prefix' so the bucket layout
-    mirrors the on-disk results tree file-for-file."""
+    mirrors the on-disk results tree file-for-file.
+
+    Raises S3ArchiveIncompleteError if any file failed to upload (partial or
+    total failure) instead of silently reporting the archive as successful.
+    """
     s3_client = boto3.client(
         "s3",
         endpoint_url=endpoint_url,
@@ -262,6 +280,9 @@ def upload_logs_to_s3(log_directory: str, bucket_name: str, key_prefix: str,
         print(f"Successfully uploaded {uploaded} files to '{s3_path}'{suffix}")
     else:
         print(f"Failed to upload any files to '{s3_path}'")
+
+    if failed:
+        raise S3ArchiveIncompleteError(s3_path, uploaded, failed)
     return s3_path
 
 def hms_to_seconds(time_str: str) -> int:
@@ -388,24 +409,36 @@ def main():
     calculate_utilized_throughput(results_data["test_metadata"])
 
     # 4. Mirror the results directory to MinIO/S3, preserving its on-disk structure
-    s3_path = upload_logs_to_s3(
-        log_directory=test_result_path_folder,
-        bucket_name=MINIO_BUCKET_NAME,
-        key_prefix=s3_key_prefix,
-        endpoint_url=MINIO_ENDPOINT_URL,
-        access_key=MINIO_ACCESS_KEY,
-        secret_key=MINIO_SECRET_KEY
-    )
+    try:
+        s3_path = upload_logs_to_s3(
+            log_directory=test_result_path_folder,
+            bucket_name=MINIO_BUCKET_NAME,
+            key_prefix=s3_key_prefix,
+            endpoint_url=MINIO_ENDPOINT_URL,
+            access_key=MINIO_ACCESS_KEY,
+            secret_key=MINIO_SECRET_KEY
+        )
+        s3_archive_status = "complete"
+    except S3ArchiveIncompleteError as e:
+        print(f"[!] {e}")
+        s3_path = e.s3_path
+        s3_archive_status = "incomplete"
 
-    # Save S3 path in the results_data before writing/ES upload
+    # Save S3 path/status in the results_data before writing/ES upload
     results_data["test_metadata"]["s3_archive_path"] = s3_path
+    results_data["test_metadata"]["s3_archive_status"] = s3_archive_status
 
     # Update relevant fields to match Elastic field types 
     results_data = modify_report_for_elastic(results_data['test_metadata'])
 
-    # 5. Write combined JSON to file
+    # 5. Write combined JSON to file (kept locally even on incomplete archive, for debugging)
     with open(output_json_path, "w") as file:
         json.dump(results_data, file, indent=4)
+
+    # Don't publish results referencing an incomplete/missing archive.
+    if s3_archive_status != "complete":
+        print("[!] Skipping Elasticsearch publication because the S3 archive is incomplete.")
+        sys.exit(1)
 
     # 6. Upload combined JSON to Elasticsearch
     upload_to_elasticsearch(
