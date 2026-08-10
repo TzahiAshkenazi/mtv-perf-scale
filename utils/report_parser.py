@@ -38,6 +38,7 @@ result ={
 # Elasticsearch config (values injected via bws run or environment variables)
 ES_HOST = os.environ.get("ES_URL", "http://elasticsearch.example.test:9200")
 ES_INDEX = os.environ.get("ES_INDEX", "mtv")
+ES_REQUEST_TIMEOUT_SEC = int(os.environ.get("ES_REQUEST_TIMEOUT_SEC", "30"))
 
 # MinIO/S3 config (values injected via bws run or environment variables)
 MINIO_ENDPOINT_URL = os.environ.get("MINIO_ENDPOINT_URL", "http://minio.example.test:9000")
@@ -232,7 +233,7 @@ def upload_to_elasticsearch(es_host: str, es_index: str, doc_id: str | None, doc
     if doc_id:
         url += f"/{doc_id}"
     try:
-        response = requests.post(url, json=doc)
+        response = requests.post(url, json=doc, timeout=ES_REQUEST_TIMEOUT_SEC)
         response.raise_for_status()
         stored_id = response.json().get("_id", doc_id)
         doc_url = f"{es_host}/{es_index}/_doc/{stored_id}"
