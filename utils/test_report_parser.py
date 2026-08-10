@@ -1,6 +1,7 @@
 import io
 import os
 import sys
+import tempfile
 import unittest
 from contextlib import redirect_stdout
 from unittest.mock import MagicMock, call, patch
@@ -44,8 +45,6 @@ class UploadLogsToS3Tests(unittest.TestCase):
         return full_path
 
     def test_mirrors_nested_directory_structure_as_s3_keys(self):
-        import tempfile
-
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._write(tmp_dir, "1vm-1disk-1tb-820usage-cold-tc2-4_STDOUT.log")
             self._write(tmp_dir, "MigrationBreakdown_1vm-1disk-1tb-820usage-cold-tc2-4_20260808-142034.txt")
@@ -62,14 +61,14 @@ class UploadLogsToS3Tests(unittest.TestCase):
                     log_directory=tmp_dir,
                     bucket_name="mtv-bucket",
                     key_prefix=key_prefix,
-                    endpoint_url="http://minio.example.com:9000",
+                    endpoint_url="http://minio.example.test:9000",
                     access_key="key",
                     secret_key="secret",
                 )
 
             mock_client_factory.assert_called_once_with(
                 "s3",
-                endpoint_url="http://minio.example.com:9000",
+                endpoint_url="http://minio.example.test:9000",
                 aws_access_key_id="key",
                 aws_secret_access_key="secret",
             )
@@ -100,8 +99,6 @@ class UploadLogsToS3Tests(unittest.TestCase):
             self.assertEqual(mock_s3_client.upload_file.call_count, 3)
 
     def test_raises_on_partial_upload_failure(self):
-        import tempfile
-
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._write(tmp_dir, "good.log")
             self._write(tmp_dir, "bad.log")
@@ -118,7 +115,7 @@ class UploadLogsToS3Tests(unittest.TestCase):
                             log_directory=tmp_dir,
                             bucket_name="mtv-bucket",
                             key_prefix=key_prefix,
-                            endpoint_url="http://minio.example.com:9000",
+                            endpoint_url="http://minio.example.test:9000",
                             access_key="key",
                             secret_key="secret",
                         )
@@ -132,8 +129,6 @@ class UploadLogsToS3Tests(unittest.TestCase):
             self.assertIn("1 failed", output)
 
     def test_raises_on_total_upload_failure(self):
-        import tempfile
-
         with tempfile.TemporaryDirectory() as tmp_dir:
             self._write(tmp_dir, "only.log")
 
@@ -149,7 +144,7 @@ class UploadLogsToS3Tests(unittest.TestCase):
                             log_directory=tmp_dir,
                             bucket_name="mtv-bucket",
                             key_prefix=key_prefix,
-                            endpoint_url="http://minio.example.com:9000",
+                            endpoint_url="http://minio.example.test:9000",
                             access_key="key",
                             secret_key="secret",
                         )

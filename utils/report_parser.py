@@ -36,11 +36,11 @@ result ={
 
 }
 # Elasticsearch config (values injected via bws run or environment variables)
-ES_HOST = os.environ.get("ES_URL", "http://elasticsearch.example.com:9200")
+ES_HOST = os.environ.get("ES_URL", "http://elasticsearch.example.test:9200")
 ES_INDEX = os.environ.get("ES_INDEX", "mtv")
 
 # MinIO/S3 config (values injected via bws run or environment variables)
-MINIO_ENDPOINT_URL = os.environ.get("MINIO_ENDPOINT_URL", "http://minio.example.com:9000")
+MINIO_ENDPOINT_URL = os.environ.get("MINIO_ENDPOINT_URL", "http://minio.example.test:9000")
 MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY", "")
 MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "")
 MINIO_BUCKET_NAME = os.environ.get("MTV_MINIO_BUCKET_NAME", "mtv-bucket")
@@ -87,7 +87,6 @@ def parse_test_results(path: str) -> dict:
         lines = file.readlines()
 
     # generate current date time
-    from datetime import datetime
     report_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
 
     # Extract general migration metadata
