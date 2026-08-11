@@ -1,13 +1,12 @@
 import argparse
 import json
 import os
+import sys
 import boto3
-import shutil
 import requests
 import re
 import uuid
 from datetime import datetime
-from pathlib import Path
 
 """
 This Python script performs the following steps:
@@ -16,13 +15,19 @@ This Python script performs the following steps:
 3. Reads all JSON files in a specified metadata_path_dir and combines them.
 4. Combines data into a single JSON document.
 5. Adjust datafields to elastic friendly format for timedate and secs
-5. Writes the combined JSON to an output file.
-6. Uploads the combined JSON to an Elasticsearch index.
-7. Compresses and archives all files in log_dir and uploads the archive to a MinIO S3 bucket.
+6. Mirrors all pre-existing files in log_dir to a MinIO S3 bucket, preserving
+   the on-disk directory structure (starting at 'results/') as the object
+   key prefix.
+7. Writes the combined JSON to a local output file (.combine_report.json),
+   embedding its own future Elasticsearch document id/url so the file is
+   self-referential.
+8. Archives that same combined JSON file to S3 too (it didn't exist yet
+   during step 6's mirror).
+9. Uploads the combined JSON to Elasticsearch using that same document id,
+   and prints the URL where it can be retrieved.
 """
 
 # # Configuration variables (adjust as needed)
-scenario_name = ''
 metadata_path_dir = ''
 output_json_path = ''
 test_result_path = ''
@@ -31,12 +36,12 @@ result ={
 
 }
 # Elasticsearch config (values injected via bws run or environment variables)
-ES_HOST = os.environ.get("ES_URL", "http://elasticsearch.example.com:9200")
+ES_HOST = os.environ.get("ES_URL", "http://elasticsearch.example.test:9200")
 ES_INDEX = os.environ.get("ES_INDEX", "mtv")
-ES_DOC_ID = None
+ES_REQUEST_TIMEOUT_SEC = int(os.environ.get("ES_REQUEST_TIMEOUT_SEC", "30"))
 
 # MinIO/S3 config (values injected via bws run or environment variables)
-MINIO_ENDPOINT_URL = os.environ.get("MINIO_ENDPOINT_URL", "http://minio.example.com:9000")
+MINIO_ENDPOINT_URL = os.environ.get("MINIO_ENDPOINT_URL", "http://minio.example.test:9000")
 MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY", "")
 MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "")
 MINIO_BUCKET_NAME = os.environ.get("MTV_MINIO_BUCKET_NAME", "mtv-bucket")
@@ -51,24 +56,30 @@ def extract_value(line: str, key: str) -> str:
     except IndexError:
         return ""
 
-def parse_folder_name_from_path(path: str) -> str:
-    """Extracts the folder name immediately after 'results/' in the path."""
-    match = re.search(r"results/([^/]+)/", path)
+def compute_s3_key_prefix(log_directory: str) -> str:
+    """Builds an S3 key prefix that mirrors the on-disk results path.
+
+    e.g. '/home/kni/MTV/results/5-0-0-8/1vm-1disk-1tb-820usage-cold-tc2-4/logs/
+    1vm-1disk-1tb-820usage-cold-tc2-4_20260808-142034' ->
+    'results/5-0-0-8/1vm-1disk-1tb-820usage-cold-tc2-4/logs/
+    1vm-1disk-1tb-820usage-cold-tc2-4_20260808-142034'
+    """
+    match = re.search(r"(results/.+)$", log_directory.rstrip("/"))
     if match:
         return match.group(1)
-    return ""
+    # Fallback: never upload directly to the bucket root.
+    return os.path.basename(log_directory.rstrip("/"))
 
 def parse_result_path(path: str) -> tuple[str, str, str, str]:
     # Configuration variables (adjust as needed)
     # test_result_path = "/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651/MigrationBreakdown_mtv280-5vms-dsl-cold_20250305-122713.txt"  # Path to your test result TXT file
     # metadata_path_dir = "/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651/.report-artifacts/"   # Directory containing multiple JSON files
     # output_json_path = "/tmp/MTV/results/mtv280-5vms-dsl-cold_20250305-122651/combine_report.json"  # Where to write the final combined JSON
-    import os
     test_result_path_folder = os.path.dirname(path)
-    scenario_name = parse_folder_name_from_path(path)
+    s3_key_prefix = compute_s3_key_prefix(test_result_path_folder)
     metadata_path_dir = test_result_path_folder + '/.report-artifacts/'   # Directory containing multiple JSON files
     output_json_path = test_result_path_folder + '/.combine_report.json'  # Where to write the final combined JSON
-    return test_result_path_folder, scenario_name, metadata_path_dir, output_json_path
+    return test_result_path_folder, s3_key_prefix, metadata_path_dir, output_json_path
 
  
 def parse_test_results(path: str) -> dict:
@@ -77,7 +88,6 @@ def parse_test_results(path: str) -> dict:
         lines = file.readlines()
 
     # generate current date time
-    from datetime import datetime
     report_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
 
     # Extract general migration metadata
@@ -213,29 +223,50 @@ def calculate_utilized_throughput(test_metadata: dict):
     test_metadata["migration"]["utilized_throughput"] = throughput
 
 
-def upload_to_elasticsearch(es_host: str, es_index: str, doc_id: str | None, doc: dict):
-    """Uploads a document to Elasticsearch using an HTTP POST/PUT request."""
+def upload_to_elasticsearch(es_host: str, es_index: str, doc_id: str | None, doc: dict) -> str | None:
+    """Uploads a document to Elasticsearch using an HTTP POST/PUT request.
+
+    Returns the direct URL where the uploaded document can be retrieved
+    (e.g. via GET), or None if the upload failed.
+    """
     url = f"{es_host}/{es_index}/_doc"
     if doc_id:
         url += f"/{doc_id}"
     try:
-        response = requests.post(url, json=doc)
+        response = requests.post(url, json=doc, timeout=ES_REQUEST_TIMEOUT_SEC)
         response.raise_for_status()
-        print(f"Successfully uploaded document to Elasticsearch index '{es_index}'")
+        stored_id = response.json().get("_id", doc_id)
+        doc_url = f"{es_host}/{es_index}/_doc/{stored_id}"
+        print(f"Successfully uploaded document to Elasticsearch index '{es_index}' (doc _id={stored_id})")
+        print(f"Document accessible at: {doc_url}")
+        return doc_url
     except requests.exceptions.RequestException as e:
         print(f"Failed to upload document: {e}")
+        return None
 
 
-def archive_and_upload_logs(log_directory: str, bucket_name: str, object_name: str,
-                             endpoint_url: str, access_key: str, secret_key: str):
-    """Compresses all files in 'log_directory' into a .tar.gz archive and uploads to S3 (MinIO)."""
-    # Create an archive from the log_directory
-    archive_name = object_name
-    shutil.make_archive(archive_name, "gztar", log_directory)
-    archive_file = archive_name + ".tar.gz"
-    archive_path = Path(f"{archive_name}.tar.gz")
+class S3ArchiveIncompleteError(Exception):
+    """Raised when one or more files failed to upload to S3, so the archive
+    for this run is partially or entirely missing."""
 
-    # Upload the archive to S3 (MinIO) using boto3
+    def __init__(self, s3_path: str, uploaded: int, failed: int):
+        self.s3_path = s3_path
+        self.uploaded = uploaded
+        self.failed = failed
+        super().__init__(
+            f"S3 archive incomplete under '{s3_path}': {uploaded} uploaded, {failed} failed"
+        )
+
+
+def upload_logs_to_s3(log_directory: str, bucket_name: str, key_prefix: str,
+                       endpoint_url: str, access_key: str, secret_key: str) -> str:
+    """Uploads every file under 'log_directory' to S3 (MinIO), preserving the
+    directory's relative structure under 'key_prefix' so the bucket layout
+    mirrors the on-disk results tree file-for-file.
+
+    Raises S3ArchiveIncompleteError if any file failed to upload (partial or
+    total failure) instead of silently reporting the archive as successful.
+    """
     s3_client = boto3.client(
         "s3",
         endpoint_url=endpoint_url,
@@ -243,15 +274,44 @@ def archive_and_upload_logs(log_directory: str, bucket_name: str, object_name: s
         aws_secret_access_key=secret_key
     )
 
-    s3_path = f"s3://{bucket_name}/{object_name}"
-    try:
-        s3_client.upload_file(archive_file, bucket_name, object_name)
-        print(f"Successfully uploaded '{archive_file}' to 's3://{bucket_name}/{object_name}'")
-        archive_path.unlink()
+    s3_path = f"s3://{bucket_name}/{key_prefix}/"
+    uploaded = 0
+    failed = 0
+    for root, _dirs, files in os.walk(log_directory):
+        for filename in files:
+            file_path = os.path.join(root, filename)
+            rel_path = os.path.relpath(file_path, log_directory)
+            key = f"{key_prefix}/{rel_path}"
+            try:
+                s3_client.upload_file(file_path, bucket_name, key)
+                uploaded += 1
+            except Exception as e:
+                failed += 1
+                print(f"[!] Failed to upload '{file_path}' to 's3://{bucket_name}/{key}': {e}")
 
-    except Exception as e:
-        print(f"Failed to upload archive to S3: {e}")
+    if uploaded:
+        suffix = f" ({failed} failed)" if failed else ""
+        print(f"Successfully uploaded {uploaded} files to '{s3_path}'{suffix}")
+    else:
+        print(f"Failed to upload any files to '{s3_path}'")
+
+    if failed:
+        raise S3ArchiveIncompleteError(s3_path, uploaded, failed)
     return s3_path
+
+
+def upload_file_to_s3(file_path: str, bucket_name: str, key: str,
+                       endpoint_url: str, access_key: str, secret_key: str) -> str:
+    """Uploads a single file to S3 (MinIO) at the given key. Returns the s3:// URI."""
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key
+    )
+    s3_client.upload_file(file_path, bucket_name, key)
+    return f"s3://{bucket_name}/{key}"
+
 
 def hms_to_seconds(time_str: str) -> int:
     """Converts a time string in HH:MM:SS format to total seconds."""
@@ -360,7 +420,9 @@ def main():
     parser.add_argument("--test-result-path", required=True, help="Path to the test result .txt file.")
     args = parser.parse_args()
 
-    test_result_path_folder, scenario_name, metadata_path_dir, output_json_path = parse_result_path(args.test_result_path)
+    test_result_path_folder, s3_key_prefix, metadata_path_dir, output_json_path = parse_result_path(
+        args.test_result_path
+    )
    
     # 1. Parse test results => returns a dict with a top-level key 'test_metadata'
     results_data = parse_test_results(args.test_result_path)
@@ -374,31 +436,89 @@ def main():
     # 3. Calculate utilized_throughput
     calculate_utilized_throughput(results_data["test_metadata"])
 
-    # # 4. Archive and upload logs to MinIO/S3
-    s3_path = archive_and_upload_logs(
-        log_directory=test_result_path_folder,
-        bucket_name=MINIO_BUCKET_NAME,
-        object_name=scenario_name,
-        endpoint_url=MINIO_ENDPOINT_URL,
-        access_key=MINIO_ACCESS_KEY,
-        secret_key=MINIO_SECRET_KEY
-    )
+    # 4. Mirror the results directory to MinIO/S3, preserving its on-disk structure
+    try:
+        s3_path = upload_logs_to_s3(
+            log_directory=test_result_path_folder,
+            bucket_name=MINIO_BUCKET_NAME,
+            key_prefix=s3_key_prefix,
+            endpoint_url=MINIO_ENDPOINT_URL,
+            access_key=MINIO_ACCESS_KEY,
+            secret_key=MINIO_SECRET_KEY
+        )
+        s3_archive_status = "complete"
+    except S3ArchiveIncompleteError as e:
+        print(f"[!] {e}")
+        s3_path = e.s3_path
+        s3_archive_status = "incomplete"
 
-    # Save S3 path in the results_data before writing/ES upload
+    # Whether the actual result files themselves were mirrored is what gates
+    # Elasticsearch publication below. Captured separately from
+    # s3_archive_status because that field may still be downgraded later
+    # (5a) if only the summary report's own upload fails -- that shouldn't
+    # block publishing results that otherwise reference real archived data.
+    result_files_archived = s3_archive_status == "complete"
+
+    # Save S3 path/status in the results_data before writing/ES upload
     results_data["test_metadata"]["s3_archive_path"] = s3_path
+    results_data["test_metadata"]["s3_archive_status"] = s3_archive_status
 
     # Update relevant fields to match Elastic field types 
     results_data = modify_report_for_elastic(results_data['test_metadata'])
 
-    # 5. Write combined JSON to file
+    # Use the already-generated result_id as a deterministic Elasticsearch
+    # document ID so it can be embedded in the report itself and referenced
+    # before the upload even happens (rather than relying on an ES-assigned
+    # ID that's never surfaced anywhere).
+    doc_id = results_data.get("result_id")
+    es_doc_url = f"{ES_HOST}/{ES_INDEX}/_doc/{doc_id}"
+    results_data["es_doc_id"] = doc_id
+    results_data["es_doc_url"] = es_doc_url
+
+    # 5. Write combined JSON to file (kept locally even on incomplete archive, for debugging)
     with open(output_json_path, "w") as file:
         json.dump(results_data, file, indent=4)
+    print(f"[i] Combined report written locally to: {output_json_path}")
+
+    # 5a. Archive the combined report itself to S3 too. This has to happen
+    # after the write above and after the directory-wide mirror in step 4,
+    # since the file didn't exist on disk yet when that mirror ran.
+    combine_report_key = f"{s3_key_prefix}/{os.path.basename(output_json_path)}"
+    try:
+        combine_report_s3_path = upload_file_to_s3(
+            file_path=output_json_path,
+            bucket_name=MINIO_BUCKET_NAME,
+            key=combine_report_key,
+            endpoint_url=MINIO_ENDPOINT_URL,
+            access_key=MINIO_ACCESS_KEY,
+            secret_key=MINIO_SECRET_KEY
+        )
+        print(f"[i] Combined report archived to: {combine_report_s3_path}")
+    except Exception as e:
+        print(f"[!] Failed to archive combined report to S3: {e}")
+        # The archive is no longer fully complete now that its own summary
+        # file failed to upload. Downgrade the status and re-write the local
+        # report (already written above) so it doesn't lie about it. This
+        # alone doesn't block Elasticsearch publication below -- the actual
+        # result data was still mirrored successfully in step 4, so it's
+        # still worth publishing, just flagged as an incomplete archive.
+        results_data["s3_archive_status"] = "incomplete"
+        with open(output_json_path, "w") as file:
+            json.dump(results_data, file, indent=4)
+
+    # Don't publish results referencing an incomplete/missing archive of the
+    # actual result files (step 4). A failure to also archive the summary
+    # report itself (5a) doesn't block publication -- it's reflected in
+    # s3_archive_status above instead.
+    if not result_files_archived:
+        print("[!] Skipping Elasticsearch publication because the S3 archive is incomplete.")
+        sys.exit(1)
 
     # 6. Upload combined JSON to Elasticsearch
     upload_to_elasticsearch(
         es_host=ES_HOST,
         es_index=ES_INDEX,
-        doc_id=ES_DOC_ID,
+        doc_id=doc_id,
         doc=results_data
     )
 if __name__ == "__main__":
