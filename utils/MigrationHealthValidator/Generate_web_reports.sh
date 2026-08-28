@@ -301,6 +301,7 @@ function extractBreakdownFromHTML(html, version) {
             var cycleData = {
                 cycle: cells[0] ? cells[0].textContent.trim() : "",
                 date: cells[1] ? cells[1].textContent.trim() : "",
+                duration: durationCell,
                 vms: breakdownCells[0] ? breakdownCells[0].textContent.trim() : "1"
             };
             for (var i = 1; i < breakdownCells.length && i < headerNames.length; i++) {
@@ -319,10 +320,15 @@ function extractBreakdownFromHTML(html, version) {
         }
     });
     
+    // Calculate average total duration
+    var durationVals = cycles.map(function(c) { return parseTimeToSeconds(c.duration || "0:00"); }).filter(function(v) { return v > 0; });
+    var avgDuration = durationVals.length > 0 ? durationVals.reduce(function(a,b){return a+b;},0) / durationVals.length : 0;
+    
     return {
         version: version.replace(/-/g, "."),
         cycles: cycles,
         stepAvgs: stepAvgs,
+        avgDuration: avgDuration,
         headers: headerNames.filter(function(h) { return h && h !== "VMs"; })
     };
 }
@@ -356,17 +362,27 @@ function showPipelineCompareModal(results) {
     
     var tableHTML = '<table style="width:100%; border-collapse:collapse; font-size:16px;">';
     tableHTML += '<thead><tr style="background:#1a5f7a;"><th style="padding:12px 20px; text-align:center; color:#fff; min-width:100px;">Version</th>';
+    tableHTML += '<th style="padding:12px 20px; text-align:center; color:#fff; min-width:90px;">Duration</th>';
     headerList.forEach(function(h) {
         tableHTML += '<th style="padding:12px 20px; text-align:center; color:#fff; min-width:90px;">' + h + '</th>';
     });
     tableHTML += '</tr></thead><tbody>';
     
     var prevVals = {};
+    var prevDuration = 0;
     results.forEach(function(r, idx) {
         if (r.error) {
-            tableHTML += '<tr style="border-bottom:1px solid #eee;"><td style="padding:12px 20px; color:#333; text-align:center;">' + r.version + '</td><td colspan="' + headerList.length + '" style="color:#e94560; padding:12px 20px;">' + r.error + '</td></tr>';
+            tableHTML += '<tr style="border-bottom:1px solid #eee;"><td style="padding:12px 20px; color:#333; text-align:center;">' + r.version + '</td><td colspan="' + (headerList.length + 1) + '" style="color:#e94560; padding:12px 20px;">' + r.error + '</td></tr>';
         } else {
+            var durArrow = "";
+            var durArrowStyle = "";
+            if (idx > 0 && prevDuration > 0 && r.avgDuration > 0) {
+                if (r.avgDuration < prevDuration - 10) { durArrow = " ▼"; durArrowStyle = "color:#4caf50; font-size:14px; font-weight:bold;"; }
+                else if (r.avgDuration > prevDuration + 10) { durArrow = " ▲"; durArrowStyle = "color:#e94560; font-size:14px; font-weight:bold;"; }
+            }
             tableHTML += '<tr style="border-bottom:1px solid #eee;"><td style="padding:12px 20px; font-weight:bold; color:#333; text-align:center; min-width:100px;">' + r.version + '</td>';
+            tableHTML += '<td style="padding:12px 20px; text-align:center; color:#333; min-width:90px; font-weight:bold;">' + formatSecToTime(r.avgDuration) + '<span style="' + durArrowStyle + '">' + durArrow + '</span></td>';
+            prevDuration = r.avgDuration;
             headerList.forEach(function(h) {
                 var val = r.stepAvgs ? r.stepAvgs[h] : 0;
                 var arrow = "";
