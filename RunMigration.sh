@@ -246,9 +246,9 @@ metadata:
   namespace: ${SourceMTVns}
 type: Opaque
 data:
-  STORAGE_HOSTNAME: $(echo -n "${STORAGE_NETAPP_MGMT_IP}" | base64)
-  STORAGE_USERNAME: $(echo -n "${STORAGE_NETAPP_USER}" | base64)
-  STORAGE_PASSWORD: $(echo -n "${STORAGE_NETAPP_MGMT_PW}" | base64)
+  STORAGE_HOSTNAME: $(echo -n "${STORAGE_NETAPP_AFF_MGMT_IP}" | base64)
+  STORAGE_USERNAME: $(echo -n "${STORAGE_NETAPP_AFF_USER}" | base64)
+  STORAGE_PASSWORD: $(echo -n "${STORAGE_NETAPP_AFF_MGMT_PW}" | base64)
   ONTAP_SVM: aXNjc2kx
 __EOF__
 }
