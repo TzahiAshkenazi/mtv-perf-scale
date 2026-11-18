@@ -8,6 +8,7 @@ scenarios:
   VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 1vm-1disk-50gb-35usage-cold-tc2-0
   TargetMigrationNS: 1vm-1disk-50gb-35usage-cold-tc2-0
   SourceMTVns: openshift-mtv
@@ -24,6 +25,7 @@ scenarios:
   VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: warm
+  method: vddk
   PlanMigrationName: 1vm-1disk-50gb-35usage-warm-tc2-1
   TargetMigrationNS: 1vm-1disk-50gb-35usage-warm-tc2-1
   SourceMTVns: openshift-mtv
@@ -72,6 +74,7 @@ scenarios:
   VMsPrefix: 1tb-75-usage  # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 1vm-1disk-1tb-820usage-cold-tc2-4
   TargetMigrationNS: 1vm-1disk-1tb-820usage-cold-tc2-4
   SourceMTVns: openshift-mtv
@@ -89,6 +92,7 @@ scenarios:
   VMsPrefix: fio-1tb-warm  # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: warm
+  method: vddk
   PlanMigrationName: 1vm-1tb-366gb-usage-dynamic-fio-warm-tc2-5
   TargetMigrationNS: 1vm-1tb-366gb-usage-dynamic-fio-warm-tc2-5
   SourceMTVns: openshift-mtv
@@ -111,6 +115,7 @@ scenarios:
   total_vms: 10    # total_vms
   MixedVMs: true
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 10vm-mixed-1disk-50gb-35usage-cold-tc2-6
   TargetMigrationNS: 10vm-mixed-1disk-50gb-35usage-cold-tc2-6
   SourceMTVns: openshift-mtv
@@ -151,6 +156,7 @@ scenarios:
   VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
   total_vms: 80    # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 80vm-1disk-50gb-35usage-cold-tc2-8
   TargetMigrationNS: 80vm-1disk-50gb-35usage-cold-tc2-8
   SourceMTVns: openshift-mtv
@@ -200,6 +206,7 @@ scenarios:
   VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
   total_vms: 10     # total_vms
   MigrationType: warm
+  method: vddk
   PlanMigrationName: 10vm-1disk-50gb-35usage-warm-tc3-3
   TargetMigrationNS: 10vm-1disk-50gb-35usage-warm-tc3-3
   SourceMTVns: openshift-mtv
@@ -216,6 +223,7 @@ scenarios:
   VMsPrefix: rhel79-50gb-20usage-2disks-warm-vm   # VMsPrefix
   total_vms: 136     # total_vms
   MigrationType: warm
+  method: vddk
   MaxVMInflight: 100
   PlanMigrationName: 136vm-2disk-50gb-35usage-warm-tc3-4
   TargetMigrationNS: 136vm-2disk-50gb-35usage-warm-tc3-4
@@ -300,6 +308,7 @@ scenarios:
   VMsPrefix: 1tb-75-usage   # VMsPrefix
   total_vms: 1    # total_vms
   MigrationType: cold
+  method: vddk
   StorageOffload: true
   PlanMigrationName: 1vm-1tb-offload-cold-tc4-0
   TargetMigrationNS: 1vm-1tb-offload-cold-tc4-0
@@ -359,6 +368,7 @@ scenarios:
   NumOfPlans: 10
   NumOfVMsPerPlan: 1
   MigrationType: warm
+  method: vddk
   PlanMigrationName: 10vms-50gb-35usage-warm-multiplans-tc5-0
   TargetMigrationNS: 10vms-50gb-35usage-warm-multiplans-tc5-0
   SourceMTVns: openshift-mtv
@@ -393,6 +403,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-tc6-0
   TargetMigrationNS: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-tc6-0
   SourceMTVns: openshift-mtv
@@ -409,6 +420,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 1vm-ibm-rhel79-50gb-70usage-cold-fc-tc6-1
   TargetMigrationNS: 1vm-ibm-rhel79-50gb-70usage-cold-fc-tc6-1
   SourceMTVns: openshift-mtv
@@ -425,6 +437,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: warm
+  method: vddk
   PlanMigrationName: 1vm-ibm-rhel79-50gb-70usage-warm-iscsi-tc6-2
   TargetMigrationNS: 1vm-ibm-rhel79-50gb-70usage-warm-iscsi-tc6-2
   SourceMTVns: openshift-mtv
@@ -441,6 +454,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: warm
+  method: vddk
   PlanMigrationName: 1vm-ibm-rhel79-50gb-70usage-warm-fc-tc6-3
   TargetMigrationNS: 1vm-ibm-rhel79-50gb-70usage-warm-fc-tc6-3
   SourceMTVns: openshift-mtv
@@ -457,6 +471,7 @@ scenarios:
   VMsPrefix: ibm-1tb-75-usage-iscsi   # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 1vm-ibm-1tb-cold-iscsi-tc6-4
   TargetMigrationNS: 1vm-ibm-1tb-cold-iscsi-tc6-4
   SourceMTVns: openshift-mtv
@@ -473,6 +488,7 @@ scenarios:
   VMsPrefix: ibm-1tb-75-usage-fc   # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 1vm-ibm-1tb-cold-fc-tc6-5
   TargetMigrationNS: 1vm-ibm-1tb-cold-fc-tc6-5
   SourceMTVns: openshift-mtv
@@ -489,6 +505,7 @@ scenarios:
   VMsPrefix: ibm-fio-1tb-warm-iscsi  # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: warm
+  method: vddk
   PlanMigrationName: 1vm-ibm-1tb-366gb-usage-dynamic-fio-warm-iscsi-tc6-6
   TargetMigrationNS: 1vm-ibm-1tb-366gb-usage-dynamic-fio-warm-iscsi-tc6-6
   SourceMTVns: openshift-mtv
@@ -508,6 +525,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-20usage-2disks-iscsi-vm   # VMsPrefix
   total_vms: 1     # total_vms
   MigrationType: warm
+  method: vddk
   PlanMigrationName: 1vm-ibm-2disk-50gb-35usage-warm-iscsi-tc6-7
   TargetMigrationNS: 1vm-ibm-2disk-50gb-35usage-warm-iscsi-tc6-7
   SourceMTVns: openshift-mtv
@@ -526,6 +544,7 @@ scenarios:
   total_vms: 10    # total_vms
   MixedVMs: true
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 10vm-ibm-mixed-1disk-50gb-35usage-cold-fc-tc7-0
   TargetMigrationNS: 10vm-ibm-mixed-1disk-50gb-35usage-cold-fc-tc7-0
   SourceMTVns: openshift-mtv
@@ -542,6 +561,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
   total_vms: 10    # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-1
   TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-1
   SourceMTVns: openshift-mtv
@@ -558,6 +578,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
   total_vms: 10    # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-cold-fc-tc7-2
   TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-cold-fc-tc7-2
   SourceMTVns: openshift-mtv
@@ -574,6 +595,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
   total_vms: 10    # total_vms
   MigrationType: warm
+  method: vddk
   PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-warm-fc-tc7-3
   TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-warm-fc-tc7-3
   SourceMTVns: openshift-mtv
@@ -590,6 +612,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
   total_vms: 50    # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 50vm-ibm-1disk-50gb-35usage-cold-fc-tc7-4
   TargetMigrationNS: 50vm-ibm-1disk-50gb-35usage-cold-fc-tc7-4
   SourceMTVns: openshift-mtv
@@ -606,6 +629,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
   total_vms: 50    # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 50vm-soak-ibm-1disk-50gb-35usage-cold-fc-tc7-5
   TargetMigrationNS: 50vm-soak-ibm-1disk-50gb-35usage-cold-fc-tc7-5
   SourceMTVns: openshift-mtv
@@ -622,6 +646,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
   total_vms: 80    # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 80vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-6
   TargetMigrationNS: 80vm-ibm-1disk-50gb-35usage-cold-iscsi-tc7-6
   SourceMTVns: openshift-mtv
@@ -638,6 +663,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
   total_vms: 10    # total_vms
   MigrationType: cold
+  method: vddk
   PlanMigrationName: 10vm-ibm-aio-buffer-1disk-50gb-35usage-cold-iscsi-tc8-0
   TargetMigrationNS: 10vm-ibm-aio-buffer-1disk-50gb-35usage-cold-iscsi-tc8-0
   SourceMTVns: openshift-mtv
@@ -655,6 +681,7 @@ scenarios:
   VMsPrefix: ibm-1tb-75-usage-iscsi   # VMsPrefix
   total_vms: 1    # total_vms
   MigrationType: cold
+  method: vddk
   StorageOffload: true
   PlanMigrationName: 1vm-ibm-1tb-offload-cold-iscsi-tc9-0
   TargetMigrationNS: 1vm-ibm-1tb-offload-cold-iscsi-tc9-0
@@ -673,6 +700,7 @@ scenarios:
   VMsPrefix: ibm-1tb-75-usage-iscsi   # VMsPrefix
   total_vms: 1    # total_vms
   MigrationType: warm
+  method: vddk
   StorageOffload: true
   PlanMigrationName: 1vm-ibm-1tb-offload-warm-iscsi-tc9-1
   TargetMigrationNS: 1vm-ibm-1tb-offload-warm-iscsi-tc9-1
@@ -691,6 +719,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-20usage-10disks-offload-iscsi-vm   # VMsPrefix
   total_vms: 5    # total_vms
   MigrationType: cold
+  method: vddk
   controller_max_populator_inflight: 5
   StorageOffload: true
   PlanMigrationName: 5vm-10disks-ibm-50gb-usage-offload-cold-iscsi-tc9-2
@@ -710,6 +739,7 @@ scenarios:
   VMsPrefix: ibm-rhel79-50gb-20usage-2disks-offload-iscsi-vm   # VMsPrefix
   total_vms: 50   # total_vms
   MigrationType: cold
+  method: vddk
   controller_max_populator_inflight: 2
   StorageOffload: true
   PlanMigrationName: 50vm-2disk-ibm-50gb-usage-offload-cold-iscsi-tc9-3
