@@ -895,4 +895,90 @@ scenarios:
   provider:
     url: https://${VCENTER_HOSTNAME}/sdk
     name: vsphere-8.0.3-1
-      
+
+# MTV 5.1 NFC Belay shortlist (method: nfc → VDDKURL uses go-nfc image)
+- name: 1vm-1disk-50gb-35usage-cold-nfc-tc14-0
+  testcase: 14.0
+  case: NET-FC-C-01V-STD-01
+  description: "1VM 1disk 50GB cold — NFC Belay (Netapp FC)"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  method: nfc
+  PlanMigrationName: 1vm-1disk-50gb-35usage-cold-nfc-tc14-0
+  TargetMigrationNS: 1vm-1disk-50gb-35usage-cold-nfc-tc14-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${NFC_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-1disk-50gb-35usage-warm-nfc-tc14-1
+  testcase: 14.1
+  case: NET-ISC-W-01V-STD-01
+  description: "1VM 1disk 50GB warm — NFC Belay (Netapp ISCSI)"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  method: nfc
+  PlanMigrationName: 1vm-1disk-50gb-35usage-warm-nfc-tc14-1
+  TargetMigrationNS: 1vm-1disk-50gb-35usage-warm-nfc-tc14-1
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${NFC_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-nfc-tc14-2
+  testcase: 14.2
+  case: IBM-ISC-C-01V-STD-01
+  description: "IBM 1VM cold ISCSI — NFC Belay"
+  VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  method: nfc
+  PlanMigrationName: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-nfc-tc14-2
+  TargetMigrationNS: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-nfc-tc14-2
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${NFC_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-ibm-1disk-50gb-35usage-cold-fc-nfc-tc14-3
+  testcase: 14.3
+  case: IBM-FC-C-10V-STD-01
+  description: "IBM 10VMs cold FC — NFC Belay"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: cold
+  method: nfc
+  PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-cold-fc-nfc-tc14-3
+  TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-cold-fc-nfc-tc14-3
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${NFC_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-ibm-1disk-50gb-35usage-warm-fc-nfc-tc14-4
+  testcase: 14.4
+  case: IBM-FC-W-10V-STD-01
+  description: "IBM 10VMs warm FC — NFC Belay (optional)"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: warm
+  method: nfc
+  PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-warm-fc-nfc-tc14-4
+  TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-warm-fc-nfc-tc14-4
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${NFC_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
