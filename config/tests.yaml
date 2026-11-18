@@ -790,6 +790,94 @@ scenarios:
     url: https://${VCENTER_HOSTNAME}/sdk
     name: vsphere-8.0.3-1
 
+# MTV 5.1 NetApp ASA A70 — VDDK baseline (TC 10.x)
+- name: 1vm-asa-1disk-50gb-35usage-cold-tc10-0
+  testcase: 10.0
+  case: ASA-FC-C-01V-STD-01
+  description: "1VM 1disk 50GB cold (NetApp ASA A70 FC)"
+  VMsPrefix: asa-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  method: vddk
+  PlanMigrationName: 1vm-asa-1disk-50gb-35usage-cold-tc10-0
+  TargetMigrationNS: 1vm-asa-1disk-50gb-35usage-cold-tc10-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-asa-1disk-50gb-35usage-warm-tc10-1
+  testcase: 10.1
+  case: ASA-ISC-W-01V-STD-01
+  description: "1VM 1disk 50GB warm (NetApp ASA A70 ISCSI)"
+  VMsPrefix: asa-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  method: vddk
+  PlanMigrationName: 1vm-asa-1disk-50gb-35usage-warm-tc10-1
+  TargetMigrationNS: 1vm-asa-1disk-50gb-35usage-warm-tc10-1
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-asa-1disk-50gb-35usage-warm-tc10-2
+  testcase: 10.2
+  case: ASA-FC-W-10V-STD-01
+  description: "10VMs warm FC (NetApp ASA A70)"
+  VMsPrefix: asa-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: warm
+  method: vddk
+  PlanMigrationName: 10vm-asa-1disk-50gb-35usage-warm-tc10-2
+  TargetMigrationNS: 10vm-asa-1disk-50gb-35usage-warm-tc10-2
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 50vm-asa-1disk-50gb-35usage-cold-fc-tc10-3
+  testcase: 10.3
+  case: ASA-FC-C-50V-STD-01
+  description: "50VMs cold FC 5 ESXi (NetApp ASA A70)"
+  VMsPrefix: asa-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 50    # total_vms
+  MigrationType: cold
+  method: vddk
+  PlanMigrationName: 50vm-asa-1disk-50gb-35usage-cold-fc-tc10-3
+  TargetMigrationNS: 50vm-asa-1disk-50gb-35usage-cold-fc-tc10-3
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-asa-1tb-366gb-usage-dynamic-fio-warm-tc10-4
+  testcase: 10.4
+  case: ASA-ISC-W-01V-LRG-01
+  description: "1VM 1TB FIO warm (NetApp ASA A70 ISCSI)"
+  VMsPrefix: asa-fio-1tb-warm-iscsi   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  method: vddk
+  TotalPreCopies: 10
+  TestTimeoutInHours: 24
+  wait_for_final_snapshot_consolidation: 'false'
+  PlanMigrationName: 1vm-asa-1tb-366gb-usage-dynamic-fio-warm-tc10-4
+  TargetMigrationNS: 1vm-asa-1tb-366gb-usage-dynamic-fio-warm-tc10-4
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
 
 - name: dsl-4-small
   testcase: 1.0
