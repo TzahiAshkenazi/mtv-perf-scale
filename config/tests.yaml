@@ -1026,6 +1026,64 @@ scenarios:
     url: https://${VCENTER_HOSTNAME}/sdk
     name: vsphere-8.0.3-1
 
+# MTV 5.1 Pure FlashArray//X70 R5 — Storage Offload baseline (TC 13.x)
+- name: 1vm-pure-1tb-offload-cold-tc13-0
+  testcase: 13.0
+  case: PUR-ISC-C-01V-OFL-01
+  description: "1VM 1TB Storage-offload cold (Pure FlashArray//X70 R5)"
+  VMsPrefix: pure-1tb-75-usage-iscsi   # VMsPrefix
+  total_vms: 1    # total_vms
+  MigrationType: cold
+  method: vddk
+  StorageOffload: true
+  PlanMigrationName: 1vm-pure-1tb-offload-cold-tc13-0
+  TargetMigrationNS: 1vm-pure-1tb-offload-cold-tc13-0
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: pure-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-pure-1tb-offload-warm-tc13-1
+  testcase: 13.1
+  case: PUR-ISC-W-01V-OFL-01
+  description: "1VM 1TB Storage-offload warm (Pure FlashArray//X70 R5)"
+  VMsPrefix: pure-1tb-75-usage-iscsi   # VMsPrefix
+  total_vms: 1    # total_vms
+  MigrationType: warm
+  method: vddk
+  StorageOffload: true
+  PlanMigrationName: 1vm-pure-1tb-offload-warm-tc13-1
+  TargetMigrationNS: 1vm-pure-1tb-offload-warm-tc13-1
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: pure-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-pure-2disk-50gb-usage-offload-cold-tc13-2
+  testcase: 13.2
+  case: PUR-ISC-C-10V-OFL-MDK-01
+  description: "10VMs 2disks Storage-offload cold (Pure FlashArray//X70 R5) — NEW"
+  VMsPrefix: pure-rhel79-50gb-20usage-2disks-offload-iscsi-vm   # VMsPrefix
+  total_vms: 10   # total_vms
+  MigrationType: cold
+  method: vddk
+  StorageOffload: true
+  PlanMigrationName: 10vm-pure-2disk-50gb-usage-offload-cold-tc13-2
+  TargetMigrationNS: 10vm-pure-2disk-50gb-usage-offload-cold-tc13-2
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: pure-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
 - name: dsl-4-small
   testcase: 1.0
   case: TBD
