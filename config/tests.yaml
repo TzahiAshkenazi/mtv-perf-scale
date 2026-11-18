@@ -879,6 +879,64 @@ scenarios:
     url: https://${VCENTER_HOSTNAME}/sdk
     name: vsphere-8.0.3-1
 
+# MTV 5.1 NetApp ASA A70 — Storage Offload baseline (TC 12.x)
+- name: 1vm-asa-1tb-offload-cold-tc12-0
+  testcase: 12.0
+  case: ASA-ISC-C-01V-OFL-01
+  description: "1VM 1TB Storage-offload cold (NetApp ASA A70)"
+  VMsPrefix: asa-1tb-75-usage-iscsi   # VMsPrefix
+  total_vms: 1    # total_vms
+  MigrationType: cold
+  method: vddk
+  StorageOffload: true
+  PlanMigrationName: 1vm-asa-1tb-offload-cold-tc12-0
+  TargetMigrationNS: 1vm-asa-1tb-offload-cold-tc12-0
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: netapp-asa-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-asa-1tb-offload-warm-tc12-1
+  testcase: 12.1
+  case: ASA-ISC-W-01V-OFL-01
+  description: "1VM 1TB Storage-offload warm (NetApp ASA A70)"
+  VMsPrefix: asa-1tb-75-usage-iscsi   # VMsPrefix
+  total_vms: 1    # total_vms
+  MigrationType: warm
+  method: vddk
+  StorageOffload: true
+  PlanMigrationName: 1vm-asa-1tb-offload-warm-tc12-1
+  TargetMigrationNS: 1vm-asa-1tb-offload-warm-tc12-1
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: netapp-asa-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-asa-2disk-50gb-usage-offload-cold-tc12-2
+  testcase: 12.2
+  case: ASA-ISC-C-10V-OFL-MDK-01
+  description: "10VMs 2disks Storage-offload cold (NetApp ASA A70) — NEW"
+  VMsPrefix: asa-rhel79-50gb-20usage-2disks-offload-iscsi-vm   # VMsPrefix
+  total_vms: 10   # total_vms
+  MigrationType: cold
+  method: vddk
+  StorageOffload: true
+  PlanMigrationName: 10vm-asa-2disk-50gb-usage-offload-cold-tc12-2
+  TargetMigrationNS: 10vm-asa-2disk-50gb-usage-offload-cold-tc12-2
+  SourceMTVns: openshift-mtv
+  TargetStorageClass: netapp-asa-perf-iscsi
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
 # MTV 5.1 Pure FlashArray//X70 R5 — VDDK baseline (TC 11.x)
 - name: 1vm-pure-1disk-50gb-35usage-cold-tc11-0
   testcase: 11.0
