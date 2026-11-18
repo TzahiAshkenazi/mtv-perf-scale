@@ -656,6 +656,44 @@ scenarios:
     url: https://${VCENTER_HOSTNAME}/sdk
     name: vsphere-8.0.3-1
 
+# IBM replacements for NetApp regression 3.4 / 5.0 (keep NetApp originals)
+- name: 136vm-ibm-2disk-50gb-35usage-warm-iscsi-tc7-7
+  testcase: 7.7
+  case: IBM-ISC-W-136V-MDK-01
+  description: "IBM 136VMs 2disks warm ISCSI"
+  VMsPrefix: ibm-rhel79-50gb-20usage-2disks-iscsi-vm   # VMsPrefix
+  total_vms: 136     # total_vms
+  MigrationType: warm
+  method: vddk
+  MaxVMInflight: 100
+  PlanMigrationName: 136vm-ibm-2disk-50gb-35usage-warm-iscsi-tc7-7
+  TargetMigrationNS: 136vm-ibm-2disk-50gb-35usage-warm-iscsi-tc7-7
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vms-ibm-50gb-35usage-warm-multiplans-fc-tc7-8
+  testcase: 7.8
+  case: ANY-ANY-W-10V-MPL-01
+  description: "IBM 10vms multi-plan warm FC"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  NumOfPlans: 10
+  NumOfVMsPerPlan: 1
+  MigrationType: warm
+  method: vddk
+  PlanMigrationName: 10vms-ibm-50gb-35usage-warm-multiplans-fc-tc7-8
+  TargetMigrationNS: 10vms-ibm-50gb-35usage-warm-multiplans-fc-tc7-8
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
 - name: 10vm-ibm-aio-buffer-1disk-50gb-35usage-cold-iscsi-tc8-0
   testcase: 8.0
   case: IBM-ISC-C-10V-AIO-01
