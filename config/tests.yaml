@@ -982,3 +982,89 @@ scenarios:
     url: https://${VCENTER_HOSTNAME}/sdk
     name: vsphere-8.0.3-1
 
+# MTV 5.1 Toehold shortlist (method: toehold; TOEHOLD_IMAGE path TBD)
+- name: 1vm-1disk-50gb-35usage-cold-toehold-tc15-0
+  testcase: 15.0
+  case: NET-FC-C-01V-STD-01
+  description: "1VM 1disk 50GB cold — Toehold (same shortlist as NFC)"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  method: toehold
+  PlanMigrationName: 1vm-1disk-50gb-35usage-cold-toehold-tc15-0
+  TargetMigrationNS: 1vm-1disk-50gb-35usage-cold-toehold-tc15-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${TOEHOLD_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-1disk-50gb-35usage-warm-toehold-tc15-1
+  testcase: 15.1
+  case: NET-ISC-W-01V-STD-01
+  description: "1VM 1disk 50GB warm — Toehold (same shortlist as NFC)"
+  VMsPrefix: rhel79-50gb-70usage-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  method: toehold
+  PlanMigrationName: 1vm-1disk-50gb-35usage-warm-toehold-tc15-1
+  TargetMigrationNS: 1vm-1disk-50gb-35usage-warm-toehold-tc15-1
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${TOEHOLD_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-toehold-tc15-2
+  testcase: 15.2
+  case: IBM-ISC-C-01V-STD-01
+  description: "IBM 1VM cold ISCSI — Toehold"
+  VMsPrefix: ibm-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  method: toehold
+  PlanMigrationName: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-toehold-tc15-2
+  TargetMigrationNS: 1vm-ibm-1disk-50gb-35usage-cold-iscsi-toehold-tc15-2
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${TOEHOLD_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-ibm-1disk-50gb-35usage-cold-fc-toehold-tc15-3
+  testcase: 15.3
+  case: IBM-FC-C-10V-STD-01
+  description: "IBM 10VMs cold FC — Toehold (+10 appliance VMs)"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: cold
+  method: toehold
+  PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-cold-fc-toehold-tc15-3
+  TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-cold-fc-toehold-tc15-3
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${TOEHOLD_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-ibm-1disk-50gb-35usage-warm-fc-toehold-tc15-4
+  testcase: 15.4
+  case: IBM-FC-W-10V-STD-01
+  description: "IBM 10VMs warm FC — Toehold optional (+10 appliance VMs)"
+  VMsPrefix: ibm-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: warm
+  method: toehold
+  PlanMigrationName: 10vm-ibm-1disk-50gb-35usage-warm-fc-toehold-tc15-4
+  TargetMigrationNS: 10vm-ibm-1disk-50gb-35usage-warm-fc-toehold-tc15-4
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${TOEHOLD_IMAGE}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
