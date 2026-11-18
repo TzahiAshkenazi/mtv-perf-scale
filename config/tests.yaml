@@ -879,6 +879,95 @@ scenarios:
     url: https://${VCENTER_HOSTNAME}/sdk
     name: vsphere-8.0.3-1
 
+# MTV 5.1 Pure FlashArray//X70 R5 — VDDK baseline (TC 11.x)
+- name: 1vm-pure-1disk-50gb-35usage-cold-tc11-0
+  testcase: 11.0
+  case: PUR-FC-C-01V-STD-01
+  description: "1VM 1disk 50GB cold (Pure FlashArray//X70 R5)"
+  VMsPrefix: pure-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: cold
+  method: vddk
+  PlanMigrationName: 1vm-pure-1disk-50gb-35usage-cold-tc11-0
+  TargetMigrationNS: 1vm-pure-1disk-50gb-35usage-cold-tc11-0
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-pure-1disk-50gb-35usage-warm-tc11-1
+  testcase: 11.1
+  case: PUR-ISC-W-01V-STD-01
+  description: "1VM 1disk 50gb warm (Pure FlashArray//X70 R5)"
+  VMsPrefix: pure-rhel79-50gb-70usage-iscsi-vm   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  method: vddk
+  PlanMigrationName: 1vm-pure-1disk-50gb-35usage-warm-tc11-1
+  TargetMigrationNS: 1vm-pure-1disk-50gb-35usage-warm-tc11-1
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 10vm-pure-1disk-50gb-35usage-warm-tc11-2
+  testcase: 11.2
+  case: PUR-FC-W-10V-STD-01
+  description: "10VMs warm FC (Pure FlashArray//X70 R5)"
+  VMsPrefix: pure-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 10    # total_vms
+  MigrationType: warm
+  method: vddk
+  PlanMigrationName: 10vm-pure-1disk-50gb-35usage-warm-tc11-2
+  TargetMigrationNS: 10vm-pure-1disk-50gb-35usage-warm-tc11-2
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 50vm-pure-1disk-50gb-35usage-cold-fc-tc11-3
+  testcase: 11.3
+  case: PUR-FC-C-50V-STD-01
+  description: "50VMs cold FC 5 ESXi (Pure FlashArray//X70 R5)"
+  VMsPrefix: pure-rhel79-50gb-70usage-fc-vm   # VMsPrefix
+  total_vms: 50    # total_vms
+  MigrationType: cold
+  method: vddk
+  PlanMigrationName: 50vm-pure-1disk-50gb-35usage-cold-fc-tc11-3
+  TargetMigrationNS: 50vm-pure-1disk-50gb-35usage-cold-fc-tc11-3
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
+- name: 1vm-pure-1tb-366gb-usage-dynamic-fio-warm-tc11-4
+  testcase: 11.4
+  case: PUR-ISC-W-01V-LRG-01
+  description: "1VM 1TB FIO warm (Pure FlashArray//X70 R5)"
+  VMsPrefix: pure-fio-1tb-warm-iscsi   # VMsPrefix
+  total_vms: 1     # total_vms
+  MigrationType: warm
+  method: vddk
+  TotalPreCopies: 10
+  TestTimeoutInHours: 24
+  wait_for_final_snapshot_consolidation: 'false'
+  PlanMigrationName: 1vm-pure-1tb-366gb-usage-dynamic-fio-warm-tc11-4
+  TargetMigrationNS: 1vm-pure-1tb-366gb-usage-dynamic-fio-warm-tc11-4
+  SourceMTVns: openshift-mtv
+  VDDKURL: ${VDDK_IMAGE_8}
+  MaxLoopCycles: 1
+  provider:
+    url: https://${VCENTER_HOSTNAME}/sdk
+    name: vsphere-8.0.3-1
+
 - name: dsl-4-small
   testcase: 1.0
   case: TBD
